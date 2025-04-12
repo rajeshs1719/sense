@@ -1,0 +1,5 @@
+Django==3.2
+channels==3.0.3
+djangorestframework==3.12.4
+opencv-python==4.5.1.48
+redis==3.5.3

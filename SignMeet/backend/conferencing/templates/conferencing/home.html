@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+{% extends 'conferencing/base.html' %}
+{% load static %}
+
+{% block content %}
+<h2>Enter Room Name to Start Video Call</h2>
+
+<form id="roomForm" method="GET">
+    <input type="text" id="roomName" placeholder="Enter Room Name" required>
+    <button type="submit">Start Video Call</button>
+</form>
+
+<script>
+    const form = document.getElementById('roomForm');
+    form.onsubmit = function(event) {
+        event.preventDefault();
+        const roomName = document.getElementById('roomName').value.trim();
+        if (roomName) {
+            window.location.href = `/video-call/${encodeURIComponent(roomName)}/`;; // Ensure roomName is in URL
+        } else {
+            alert('Please enter a room name!');
+        }
+    };
+</script>
+{% endblock %}
+
+

@@ -1,0 +1,303 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignMeet - Video Call</title>
+</head>
+<body>
+    <div id="video_container"></div>
+    <div id="controls">
+        <button id="joinBtn">Join</button>
+        <button id="leaveBtn" disabled>Leave</button>
+        <button id="camBtn" disabled>Toggle Camera</button>
+        <button id="micBtn" disabled>Toggle Mic</button>
+        <button id="detectBtn" disabled>Detect Sign Language</button>
+    </div>
+    <div id="subtitle">Translation: [None]</div>
+
+    <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.19.0.js?nocache=202503162"></script>
+    <script>
+        const APP_ID = "71fbf1e2263a49869725faa8404523ec"; // Your Agora App ID
+        const TOKEN = "{{ token }}";
+        const ROOM_NAME = "{{ room_name }}";
+        let client = null;
+        let localTracks = { videoTrack: null, audioTrack: null };
+        let localVideoElement = null;
+        let remoteUsers = {};
+        let ws = null;
+        let isDetecting = false;
+
+        const videoContainer = document.getElementById('video_container');
+        const subtitle = document.getElementById('subtitle');
+        const joinBtn = document.getElementById('joinBtn');
+        const leaveBtn = document.getElementById('leaveBtn');
+        const camBtn = document.getElementById('camBtn');
+        const micBtn = document.getElementById('micBtn');
+        const detectBtn = document.getElementById('detectBtn');
+
+        async function fetchToken(roomName) {
+            const response = await fetch(`/get_token/?channelName=${roomName}`);
+            return await response.json();
+        }
+
+        joinBtn.onclick = async () => {
+            try {
+                const roomName = "{{ room_name }}";
+                if (!roomName || roomName.trim() === "") {
+                    alert("Room name is missing!");
+                    return;
+                }
+
+                const data = await fetchToken(roomName);
+                if (data.error) throw new Error(data.error);
+
+                const token = data.token;
+                const uid = data.uid;
+
+                client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+                client.on('user-published', handleUserPublished);
+                client.on('user-unpublished', handleUserUnpublished);
+
+                console.log("Joining channel...");
+                await client.join(APP_ID, roomName, token, uid);
+                console.log("Channel joined with UID:", uid);
+
+                console.log("Creating Agora video track...");
+                try {
+                    localTracks.videoTrack = await AgoraRTC.createCameraVideoTrack({
+                        encoderConfig: {
+                            width: 640,
+                            height: 480,
+                            frameRate: 15,
+                            bitrateMin: 300,
+                            bitrateMax: 500,
+                        }
+                    });
+                    console.log("Video track created:", localTracks.videoTrack);
+                    const videoStreamTrack = localTracks.videoTrack.getMediaStreamTrack();
+                    console.log("Video readyState:", videoStreamTrack.readyState);
+                    console.log("Video enabled:", videoStreamTrack.enabled);
+                    if (videoStreamTrack.readyState !== "live") {
+                        console.warn("Video track is not live. ReadyState:", videoStreamTrack.readyState);
+                        alert("Video track is not live.");
+                        localTracks.videoTrack = null;
+                    }
+                } catch (trackError) {
+                    console.error("Failed to create video track:", trackError);
+                    alert("Camera access failed: " + trackError.message);
+                    localTracks.videoTrack = null;
+                }
+
+                console.log("Creating Agora audio track...");
+                try {
+                    localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+                    console.log("Audio track created:", localTracks.audioTrack);
+                    const audioStreamTrack = localTracks.audioTrack.getMediaStreamTrack();
+                    console.log("Audio readyState:", audioStreamTrack.readyState);
+                    console.log("Audio enabled:", audioStreamTrack.enabled);
+                    if (audioStreamTrack.readyState !== "live") {
+                        console.warn("Audio track is not live. ReadyState:", audioStreamTrack.readyState);
+                        alert("Audio track is not live.");
+                        localTracks.audioTrack = null;
+                    }
+                } catch (trackError) {
+                    console.error("Failed to create audio track:", trackError);
+                    alert("Microphone access failed: " + trackError.message);
+                    localTracks.audioTrack = null;
+                }
+
+                if (localTracks.videoTrack) {
+                    localVideoElement = document.createElement("video");
+                    localVideoElement.id = `user-video-${uid}`;
+                    localVideoElement.style.width = "400px";
+                    localVideoElement.style.height = "300px";
+                    localVideoElement.muted = true;
+                    localVideoElement.autoplay = true;
+                    videoContainer.appendChild(localVideoElement);
+
+                    const stream = new MediaStream();
+                    stream.addTrack(localTracks.videoTrack.getMediaStreamTrack());
+                    localVideoElement.srcObject = stream;
+                    console.log("Video stream attached to element:", localVideoElement);
+
+                    try {
+                        await localVideoElement.play();
+                        console.log("Video element playing, currentTime:", localVideoElement.currentTime);
+                        localTracks.videoTrack._videoElement = localVideoElement;
+                    } catch (playError) {
+                        console.error("Failed to play video element:", playError);
+                        alert("Failed to play video: " + playError.message);
+                        localTracks.videoTrack = null;
+                        localVideoElement = null;
+                    }
+                }
+
+                if (localTracks.videoTrack || localTracks.audioTrack) {
+                    console.log("Publishing tracks...");
+                    await client.publish([localTracks.videoTrack, localTracks.audioTrack].filter(Boolean));
+                    console.log("Tracks published successfully");
+                } else {
+                    console.log("No tracks to publish. Joined without media.");
+                }
+
+                joinBtn.disabled = true;
+                leaveBtn.disabled = false;
+                camBtn.disabled = !localTracks.videoTrack;
+                micBtn.disabled = !localTracks.audioTrack;
+                detectBtn.disabled = !localTracks.videoTrack;
+
+                // Initialize WebSocket connection for sign detection
+                ws = new WebSocket('ws://' + window.location.host + '/ws/sign_detection/');
+                ws.onopen = () => {
+                    console.log("WebSocket connection established for sign detection");
+                };
+                ws.onmessage = (event) => {
+                    const translation = event.data;
+                    subtitle.textContent = `Translation: ${translation}`;
+                    console.log("Received translation:", translation);
+                };
+                ws.onclose = () => {
+                    console.log("WebSocket connection closed");
+                };
+                ws.onerror = (error) => {
+                    console.error("WebSocket error:", error);
+                };
+            } catch (err) {
+                console.error("Failed to join room:", err);
+                alert("Failed to join room: " + err.message);
+            }
+        };
+
+        leaveBtn.onclick = async () => {
+            for (let trackName in localTracks) {
+                if (localTracks[trackName]) {
+                    localTracks[trackName].stop();
+                    localTracks[trackName].close();
+                }
+            }
+            localTracks = { videoTrack: null, audioTrack: null };
+            localVideoElement = null;
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            await client.leave();
+            videoContainer.innerHTML = '';
+            joinBtn.disabled = false;
+            leaveBtn.disabled = true;
+            camBtn.disabled = true;
+            micBtn.disabled = true;
+            detectBtn.disabled = true;
+            subtitle.textContent = "Translation: [None]";
+            console.log("Left channel");
+        };
+
+        camBtn.onclick = () => {
+            if (localTracks.videoTrack) {
+                localTracks.videoTrack.setEnabled(!localTracks.videoTrack.enabled);
+                camBtn.textContent = localTracks.videoTrack.enabled ? "Disable Camera" : "Enable Camera";
+                console.log("Camera toggled, enabled:", localTracks.videoTrack.enabled);
+            }
+        };
+
+        micBtn.onclick = () => {
+            if (localTracks.audioTrack) {
+                localTracks.audioTrack.setEnabled(!localTracks.audioTrack.enabled);
+                micBtn.textContent = localTracks.audioTrack.enabled ? "Disable Mic" : "Enable Mic";
+                console.log("Mic toggled, enabled:", localTracks.audioTrack.enabled);
+            }
+        };
+
+        detectBtn.onclick = () => {
+        if (!localTracks.videoTrack) {
+            console.error("Video track is unavailable:", localTracks.videoTrack);
+            alert("No video track available for detection.");
+            return;
+        }
+
+        if (!localTracks.videoTrack._videoElement) {
+            console.error("Video element is unavailable:", {
+                videoTrack: localTracks.videoTrack,
+                videoElement: localTracks.videoTrack._videoElement
+            });
+            alert("Video feed is not rendering. Ensure the video track is playing.");
+            return;
+        }
+
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            alert("WebSocket connection not established. Try rejoining the call.");
+            return;
+        }
+
+        if (isDetecting) {
+            isDetecting = false;
+            detectBtn.textContent = "Detect Sign Language";
+            subtitle.textContent = "Translation: [None]";
+            console.log("Stopped sign language detection");
+            return;
+        }
+
+        isDetecting = true;
+        detectBtn.textContent = "Stop Detection";
+        detectSigns();
+    };
+
+        function detectSigns() {
+        const videoElement = localTracks.videoTrack._videoElement;
+        const canvas = document.createElement('canvas');
+        canvas.width = 224; // Match model input
+        canvas.height = 224;
+        const context = canvas.getContext('2d');
+
+        async function captureAndSendFrame() {
+            if (!isDetecting) return;
+
+            context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob((blob) => {
+                if (blob && ws && ws.readyState === WebSocket.OPEN) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const arrayBuffer = event.target.result;
+                        const byteArray = new Uint8Array(arrayBuffer);
+                        console.log("Sending blob, byte length:", byteArray.length);
+                        ws.send(byteArray); // Send as Uint8Array
+                    };
+                    reader.readAsArrayBuffer(blob);
+                } else {
+                    console.error("Blob or WebSocket not ready");
+                }
+            }, 'image/jpeg', 0.8);
+            setTimeout(captureAndSendFrame, 100);
+        }
+
+        captureAndSendFrame();
+    }
+
+        async function handleUserPublished(user, mediaType) {
+            console.log("User published:", user.uid, mediaType);
+            await client.subscribe(user, mediaType);
+
+            if (mediaType === 'video') {
+                const player = document.createElement("div");
+                player.id = `remote-user-${user.uid}`;
+                player.style.width = "400px";
+                player.style.height = "300px";
+                videoContainer.appendChild(player);
+                user.videoTrack.play(player);
+            }
+            if (mediaType === 'audio') {
+                user.audioTrack.play();
+            }
+        }
+
+        function handleUserUnpublished(user) {
+            console.log("User unpublished:", user.uid);
+            const player = document.getElementById(`remote-user-${user.uid}`);
+            if (player) player.remove();
+        }
+    </script>
+</body>
+</html>
