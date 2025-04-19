@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SignMeet - Video Call</title>
+    <script src="https://docs.opencv.org/4.x/opencv.js" async></script>
 </head>
 <body>
     <div id="video_container"></div>
@@ -19,7 +20,7 @@
 
     <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.19.0.js?nocache=202503162"></script>
     <script>
-        const APP_ID = "71fbf1e2263a49869725faa8404523ec"; // Your Agora App ID
+        const APP_ID = "71fbf1e2263a49869725faa8404523ec";
         const TOKEN = "{{ token }}";
         const ROOM_NAME = "{{ room_name }}";
         let client = null;
@@ -61,25 +62,15 @@
                 client.on('user-published', handleUserPublished);
                 client.on('user-unpublished', handleUserUnpublished);
 
-                console.log("Joining channel...");
                 await client.join(APP_ID, roomName, token, uid);
                 console.log("Channel joined with UID:", uid);
 
-                console.log("Creating Agora video track...");
                 try {
                     localTracks.videoTrack = await AgoraRTC.createCameraVideoTrack({
-                        encoderConfig: {
-                            width: 640,
-                            height: 480,
-                            frameRate: 15,
-                            bitrateMin: 300,
-                            bitrateMax: 500,
-                        }
+                        encoderConfig: { width: 229, height: 229, frameRate: 15, bitrateMin: 300, bitrateMax: 500 }
                     });
                     console.log("Video track created:", localTracks.videoTrack);
                     const videoStreamTrack = localTracks.videoTrack.getMediaStreamTrack();
-                    console.log("Video readyState:", videoStreamTrack.readyState);
-                    console.log("Video enabled:", videoStreamTrack.enabled);
                     if (videoStreamTrack.readyState !== "live") {
                         console.warn("Video track is not live. ReadyState:", videoStreamTrack.readyState);
                         alert("Video track is not live.");
@@ -91,13 +82,10 @@
                     localTracks.videoTrack = null;
                 }
 
-                console.log("Creating Agora audio track...");
                 try {
                     localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
                     console.log("Audio track created:", localTracks.audioTrack);
                     const audioStreamTrack = localTracks.audioTrack.getMediaStreamTrack();
-                    console.log("Audio readyState:", audioStreamTrack.readyState);
-                    console.log("Audio enabled:", audioStreamTrack.enabled);
                     if (audioStreamTrack.readyState !== "live") {
                         console.warn("Audio track is not live. ReadyState:", audioStreamTrack.readyState);
                         alert("Audio track is not live.");
@@ -112,8 +100,8 @@
                 if (localTracks.videoTrack) {
                     localVideoElement = document.createElement("video");
                     localVideoElement.id = `user-video-${uid}`;
-                    localVideoElement.style.width = "400px";
-                    localVideoElement.style.height = "300px";
+                    localVideoElement.style.width = "229px";
+                    localVideoElement.style.height = "229px";
                     localVideoElement.muted = true;
                     localVideoElement.autoplay = true;
                     videoContainer.appendChild(localVideoElement);
@@ -136,7 +124,6 @@
                 }
 
                 if (localTracks.videoTrack || localTracks.audioTrack) {
-                    console.log("Publishing tracks...");
                     await client.publish([localTracks.videoTrack, localTracks.audioTrack].filter(Boolean));
                     console.log("Tracks published successfully");
                 } else {
@@ -149,22 +136,15 @@
                 micBtn.disabled = !localTracks.audioTrack;
                 detectBtn.disabled = !localTracks.videoTrack;
 
-                // Initialize WebSocket connection for sign detection
                 ws = new WebSocket('ws://' + window.location.host + '/ws/sign_detection/');
-                ws.onopen = () => {
-                    console.log("WebSocket connection established for sign detection");
-                };
+                ws.onopen = () => console.log("WebSocket connection established for sign detection");
                 ws.onmessage = (event) => {
                     const translation = event.data;
                     subtitle.textContent = `Translation: ${translation}`;
                     console.log("Received translation:", translation);
                 };
-                ws.onclose = () => {
-                    console.log("WebSocket connection closed");
-                };
-                ws.onerror = (error) => {
-                    console.error("WebSocket error:", error);
-                };
+                ws.onclose = () => console.log("WebSocket connection closed");
+                ws.onerror = (error) => console.error("WebSocket error:", error);
             } catch (err) {
                 console.error("Failed to join room:", err);
                 alert("Failed to join room: " + err.message);
@@ -180,10 +160,7 @@
             }
             localTracks = { videoTrack: null, audioTrack: null };
             localVideoElement = null;
-            if (ws) {
-                ws.close();
-                ws = null;
-            }
+            if (ws) ws.close();
             await client.leave();
             videoContainer.innerHTML = '';
             joinBtn.disabled = false;
@@ -212,74 +189,76 @@
         };
 
         detectBtn.onclick = () => {
-        if (!localTracks.videoTrack) {
-            console.error("Video track is unavailable:", localTracks.videoTrack);
-            alert("No video track available for detection.");
-            return;
-        }
+            if (!localTracks.videoTrack || !localTracks.videoTrack._videoElement) {
+                alert("No video track or feed available.");
+                return;
+            }
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert("WebSocket connection not established. Try rejoining the call.");
+                return;
+            }
 
-        if (!localTracks.videoTrack._videoElement) {
-            console.error("Video element is unavailable:", {
-                videoTrack: localTracks.videoTrack,
-                videoElement: localTracks.videoTrack._videoElement
-            });
-            alert("Video feed is not rendering. Ensure the video track is playing.");
-            return;
-        }
+            if (isDetecting) {
+                isDetecting = false;
+                detectBtn.textContent = "Detect Sign Language";
+                subtitle.textContent = "Translation: [None]";
+                console.log("Stopped sign language detection");
+                return;
+            }
 
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
-            alert("WebSocket connection not established. Try rejoining the call.");
-            return;
-        }
-
-        if (isDetecting) {
-            isDetecting = false;
-            detectBtn.textContent = "Detect Sign Language";
-            subtitle.textContent = "Translation: [None]";
-            console.log("Stopped sign language detection");
-            return;
-        }
-
-        isDetecting = true;
-        detectBtn.textContent = "Stop Detection";
-        detectSigns();
-    };
+            isDetecting = true;
+            detectBtn.textContent = "Stop Detection";
+            detectSigns();
+        };
 
         function detectSigns() {
         const videoElement = localTracks.videoTrack._videoElement;
-        const canvas = document.createElement('canvas');
-        canvas.width = 224; // Match model input
-        canvas.height = 224;
-        const context = canvas.getContext('2d');
 
-        async function captureAndSendFrame() {
+        function captureAndSendFrame() {
             if (!isDetecting) return;
 
-            context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-            canvas.toBlob((blob) => {
-                if (blob && ws && ws.readyState === WebSocket.OPEN) {
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        const arrayBuffer = event.target.result;
-                        const byteArray = new Uint8Array(arrayBuffer);
-                        console.log("Sending blob, byte length:", byteArray.length);
-                        ws.send(byteArray); // Send as Uint8Array
-                    };
-                    reader.readAsArrayBuffer(blob);
-                } else {
-                    console.error("Blob or WebSocket not ready");
-                }
-            }, 'image/jpeg', 0.8);
-            setTimeout(captureAndSendFrame, 100);
+            if (videoElement.readyState < 2 || !cv) {
+                console.warn("Video not ready or OpenCV not loaded, readyState:", videoElement.readyState);
+                setTimeout(captureAndSendFrame, 500);
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 229;
+            canvas.height = 229;
+            const context = canvas.getContext('2d');
+            context.drawImage(videoElement, 0, 0, 229, 229);
+
+            let imageData = context.getImageData(0, 0, 229, 229);
+            let data = imageData.data;
+
+            let rgbData = new Uint8Array(229 * 229 * 3); // Exact 157,047 bytes
+            for (let i = 0, j = 0; i < data.length && j < rgbData.length; i += 4, j += 3) {
+                rgbData[j] = data[i];
+                rgbData[j + 1] = data[i + 1];
+                rgbData[j + 2] = data[i + 2];
+            }
+
+            console.log(`Sending frame, byte length: ${rgbData.length}`);
+            ws.send(rgbData);
+            setTimeout(captureAndSendFrame, 500);
         }
 
-        captureAndSendFrame();
+        function onOpenCvReady() {
+            cv = window.cv;
+            console.log("OpenCV loaded");
+            captureAndSendFrame();
+        }
+        if (typeof cv === 'undefined') {
+            window.addEventListener('opencv.js', onOpenCvReady);
+        } else {
+            onOpenCvReady();
+        }
     }
 
         async function handleUserPublished(user, mediaType) {
             console.log("User published:", user.uid, mediaType);
             await client.subscribe(user, mediaType);
-
             if (mediaType === 'video') {
                 const player = document.createElement("div");
                 player.id = `remote-user-${user.uid}`;
@@ -288,9 +267,7 @@
                 videoContainer.appendChild(player);
                 user.videoTrack.play(player);
             }
-            if (mediaType === 'audio') {
-                user.audioTrack.play();
-            }
+            if (mediaType === 'audio') user.audioTrack.play();
         }
 
         function handleUserUnpublished(user) {

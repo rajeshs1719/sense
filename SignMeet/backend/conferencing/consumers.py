@@ -2,13 +2,11 @@
 import sys
 import os
 from channels.generic.websocket import AsyncWebsocketConsumer
-import cv2
-import numpy as np
 
 # Add the signmeet directory to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
-from ml_models.asl_detection.detect import detect_signs_from_bytes
+from ml_models.asl_detection.wlasl_detection import detect_signs_from_bytes
 
 class SignDetectionConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -22,10 +20,6 @@ class SignDetectionConsumer(AsyncWebsocketConsumer):
         if bytes_data:
             try:
                 print(f"Received bytes data length: {len(bytes_data)}")
-                # Debug: Convert bytes to NumPy array and check
-                nparr = np.frombuffer(bytes_data, np.uint8)
-                print(f"NumPy array shape: {nparr.shape if hasattr(nparr, 'shape') else 'No shape, raw data length: ' + str(len(nparr))}")
-                # Process the byte data directly
                 translation = detect_signs_from_bytes(bytes_data)
                 await self.send(text_data=translation)
                 print(f"Predicted sign: {translation}")

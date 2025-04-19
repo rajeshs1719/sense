@@ -78,7 +78,7 @@ CHANNEL_LAYERS = {
 }
 
 
-
+ 
 # Allowed hosts for development
 DEBUG = True
 ALLOWED_HOSTS = ['*']
