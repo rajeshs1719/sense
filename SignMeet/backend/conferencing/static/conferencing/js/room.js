@@ -1,46 +1,17 @@
-{% extends 'conferencing/base.html' %}
-{% load static %}
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM fully loaded, checking elements...");
 
-{% block content %}
-<h2 id="title">Join a Video Call</h2>
-<div id="joinSection">
-    <form id="roomForm" method="GET">
-        <div>
-            <label for="userName">Enter Name:</label>
-            <input type="text" id="userName" name="userName" placeholder="Your Name" required>
-        </div>
-        <div>
-            <label for="roomName">Enter Room Name:</label>
-            <input type="text" id="roomName" name="roomName" placeholder="Room Name" required>
-        </div>
-        <button type="submit">Join</button>
-    </form>
-</div>
-<div id="roomSection" style="display: none;">
-    <div id="video_container"></div>
-    <div id="controls">
-        <button id="leaveBtn">Leave</button>
-        <button id="camBtn" disabled>Turn On Camera</button>
-        <button id="micBtn" disabled>Turn On Mic</button>
-        <button id="detectBtn" disabled>Detect Sign Language</button>
-    </div>
-    <div id="subtitle">Translation: [None]</div>
-</div>
-
-<script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.19.0.js?nocache=202503162"></script>
-<script src="https://docs.opencv.org/4.x/opencv.js" async></script>
-<script>
+    // Variables from template
+    const APP_ID = window.APP_ID; // From room.html template
+    const TOKEN = window.TOKEN;   // From room.html template
+    const ROOM_NAME = window.ROOM_NAME; // From room.html template
     let client = null;
     let localTracks = { videoTrack: null, audioTrack: null };
     let localVideoElement = null;
     let remoteUsers = {};
     let ws = null;
     let isDetecting = false;
-    let uid = null;
 
-    const title = document.getElementById('title');
-    const joinSection = document.getElementById('joinSection');
-    const roomSection = document.getElementById('roomSection');
     const videoContainer = document.getElementById('video_container');
     const subtitle = document.getElementById('subtitle');
     const leaveBtn = document.getElementById('leaveBtn');
@@ -48,110 +19,67 @@
     const micBtn = document.getElementById('micBtn');
     const detectBtn = document.getElementById('detectBtn');
 
-    console.log("title:", !!title);
-    console.log("joinSection:", !!joinSection);
-    console.log("roomSection:", !!roomSection);
-    console.log("videoContainer:", !!videoContainer);
-    console.log("subtitle:", !!subtitle);
-    console.log("leaveBtn:", !!leaveBtn);
-    console.log("camBtn:", !!camBtn);
-    console.log("micBtn:", !!micBtn);
-    console.log("detectBtn:", !!detectBtn);
+    // Debug: Log element existence
+    console.log("videoContainer:", videoContainer);
+    console.log("subtitle:", subtitle);
+    console.log("leaveBtn:", leaveBtn);
+    console.log("camBtn:", camBtn);
+    console.log("micBtn:", micBtn);
+    console.log("detectBtn:", detectBtn);
 
-    async function fetchToken(roomName) {
-        const response = await fetch(`/get_token/?channelName=${encodeURIComponent(roomName)}`);
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
-        return data;
+    // Check if required room controls exist
+    if (!leaveBtn || !camBtn || !micBtn || !detectBtn) {
+        console.error("Required room controls (leaveBtn, camBtn, micBtn, detectBtn) are missing.");
+        alert("Error: Room control buttons are missing. Please check the HTML.");
+        return;
     }
 
-    const form = document.getElementById('roomForm');
-    form.onsubmit = async function(event) {
-        event.preventDefault();
-        const userName = document.getElementById('userName').value.trim();
-        const roomName = document.getElementById('roomName').value.trim();
-        if (userName && roomName) {
-            const APP_ID = "71fbf1e2263a49869725faa8404523ec";
-            try {
-                const { token, uid: newUid } = await fetchToken(roomName);
-                uid = newUid;
+    // Get UID from URL (join handled in home.html)
+    const urlParams = new URLSearchParams(window.location.search);
+    const uid = urlParams.get('uid');
+    if (!uid) {
+        console.error("Missing UID in URL parameters");
+        alert("Invalid session state. Please join again from the home page.");
+        return;
+    }
+    console.log("Using existing join state with UID:", uid);
 
-                client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-                console.log("Client created with ID:", client._clientId);
+    // Initialize client without joining (rely on home.html join)
+    client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-                client.on('user-published', handleUserPublished);
-                client.on('user-unpublished', handleUserUnpublished);
+    // Set up event handlers
+    client.on('user-published', handleUserPublished);
+    client.on('user-unpublished', handleUserUnpublished);
 
-                await client.join(APP_ID, roomName, token, uid);
-                console.log("Channel joined with UID:", uid);
+    // Enable buttons (mimicking post-join state, tracks created on demand)
+    leaveBtn.disabled = false;
+    camBtn.disabled = false; // Allow track creation on click
+    micBtn.disabled = false; // Allow track creation on click
+    detectBtn.disabled = true; // Depends on video track
 
-                localTracks.videoTrack = await AgoraRTC.createCameraVideoTrack({
-                    encoderConfig: { width: 229, height: 229, frameRate: 15, bitrateMin: 300, bitrateMax: 500 }
-                });
-                console.log("Video track created:", localTracks.videoTrack);
-                const videoStreamTrack = localTracks.videoTrack.getMediaStreamTrack();
-                if (videoStreamTrack.readyState !== "live") {
-                    console.warn("Video track is not live. ReadyState:", videoStreamTrack.readyState);
-                    alert("Video track is not live.");
-                    localTracks.videoTrack = null;
-                }
-
-                if (localTracks.videoTrack) {
-                    localVideoElement = document.createElement("video");
-                    localVideoElement.id = `user-video-${uid}`;
-                    localVideoElement.style.width = "229px";
-                    localVideoElement.style.height = "229px";
-                    localVideoElement.muted = true;
-                    localVideoElement.autoplay = true;
-                    videoContainer.appendChild(localVideoElement);
-                    const stream = new MediaStream();
-                    stream.addTrack(localTracks.videoTrack.getMediaStreamTrack());
-                    localVideoElement.srcObject = stream;
-                    await localVideoElement.play().catch(err => {
-                        console.error("Video play failed:", err);
-                        alert("Failed to play video: " + err.message);
-                    });
-                    console.log("Video element playing, currentTime:", localVideoElement.currentTime);
-                    localTracks.videoTrack._videoElement = localVideoElement;
-                    await client.publish(localTracks.videoTrack);
-                    console.log("Video track published");
-                }
-
-                title.style.display = 'none'; // Hide the title
-                joinSection.style.display = 'none';
-                roomSection.style.display = 'block';
-                camBtn.disabled = false;
-                micBtn.disabled = false;
-                detectBtn.disabled = !localTracks.videoTrack;
-            } catch (err) {
-                console.error("Failed to join room:", err);
-                alert("Failed to join room: " + err.message + ". Check token generation or permissions.");
-                if (client) {
-                    await client.leave();
-                }
-            }
-        } else {
-            alert('Please enter both name and room name!');
-        }
+    // WebSocket setup
+    ws = new WebSocket('ws://' + window.location.host + '/ws/sign_detection/');
+    ws.onopen = () => console.log("WebSocket connected for sign detection");
+    ws.onmessage = (event) => {
+        const translation = event.data;
+        subtitle.textContent = `Translation: ${translation}`;
+        console.log("Received translation:", translation);
     };
+    ws.onclose = () => console.log("WebSocket connection closed");
+    ws.onerror = (error) => console.error("WebSocket error:", error);
 
     leaveBtn.onclick = async () => {
-        console.log("Leave button clicked");
         for (let trackName in localTracks) {
             if (localTracks[trackName]) {
                 localTracks[trackName].stop();
                 localTracks[trackName].close();
-                console.log(`${trackName} stopped and closed`);
             }
         }
         localTracks = { videoTrack: null, audioTrack: null };
         localVideoElement = null;
         if (ws) ws.close();
-        if (client) await client.leave();
+        await client.leave();
         videoContainer.innerHTML = '';
-        title.style.display = 'block'; // Show the title again
-        joinSection.style.display = 'block';
-        roomSection.style.display = 'none';
         leaveBtn.disabled = true;
         camBtn.disabled = true;
         micBtn.disabled = true;
@@ -163,14 +91,13 @@
     };
 
     camBtn.onclick = async () => {
-        console.log("Camera button clicked");
         if (!localTracks.videoTrack) {
             try {
                 localTracks.videoTrack = await AgoraRTC.createCameraVideoTrack({
                     encoderConfig: { width: 229, height: 229, frameRate: 15, bitrateMin: 300, bitrateMax: 500 }
                 });
                 console.log("Video track created:", localTracks.videoTrack);
-                const videoStreamTrack = localTracks.videoTrack.getMediaTrackStream();
+                const videoStreamTrack = localTracks.videoTrack.getMediaStreamTrack();
                 if (videoStreamTrack.readyState !== "live") {
                     console.warn("Video track is not live. ReadyState:", videoStreamTrack.readyState);
                     alert("Video track is not live.");
@@ -187,13 +114,10 @@
                 const stream = new MediaStream();
                 stream.addTrack(localTracks.videoTrack.getMediaStreamTrack());
                 localVideoElement.srcObject = stream;
-                await localVideoElement.play().catch(err => {
-                    console.error("Video play failed:", err);
-                    alert("Failed to play video: " + err.message);
-                });
+                await localVideoElement.play();
                 console.log("Video element playing, currentTime:", localVideoElement.currentTime);
                 localTracks.videoTrack._videoElement = localVideoElement;
-                await client.publish(localTracks.videoTrack);
+                await client.publish(localTracks.videoTrack); // Publish using existing session
                 console.log("Video track published");
                 camBtn.textContent = "Turn Off Camera";
                 detectBtn.disabled = false;
@@ -211,7 +135,6 @@
     };
 
     micBtn.onclick = async () => {
-        console.log("Mic button clicked");
         if (!localTracks.audioTrack) {
             try {
                 localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
@@ -223,7 +146,7 @@
                     localTracks.audioTrack = null;
                     return;
                 }
-                await client.publish(localTracks.audioTrack);
+                await client.publish(localTracks.audioTrack); // Publish using existing session
                 console.log("Audio track published");
                 micBtn.textContent = "Turn Off Mic";
             } catch (err) {
@@ -239,7 +162,6 @@
     };
 
     detectBtn.onclick = () => {
-        console.log("Detect button clicked");
         if (!localTracks.videoTrack || !localTracks.videoTrack._videoElement) {
             alert("No video track or feed available.");
             return;
@@ -283,7 +205,7 @@
             let imageData = context.getImageData(0, 0, 229, 229);
             let data = imageData.data;
 
-            let rgbData = new Uint8Array(229 * 229 * 3);
+            let rgbData = new Uint8Array(229 * 229 * 3); // Exact 157,047 bytes
             for (let i = 0, j = 0; i < data.length && j < rgbData.length; i += 4, j += 3) {
                 rgbData[j] = data[i];
                 rgbData[j + 1] = data[i + 1];
@@ -326,16 +248,4 @@
         const player = document.getElementById(`remote-user-${user.uid}`);
         if (player) player.remove();
     }
-
-    // WebSocket setup
-    ws = new WebSocket('ws://' + window.location.host + '/ws/sign_detection/');
-    ws.onopen = () => console.log("WebSocket connected for sign detection");
-    ws.onmessage = (event) => {
-        const translation = event.data;
-        subtitle.textContent = `Translation: ${translation}`;
-        console.log("Received translation:", translation);
-    };
-    ws.onclose = () => console.log("WebSocket connection closed");
-    ws.onerror = (error) => console.error("WebSocket error:", error);
-</script>
-{% endblock %}
+});

@@ -10,7 +10,11 @@ def home(request):
 
 # Video Call Room View
 def video_call(request, room_name):
-    return render(request, 'conferencing/room.html', {'room_name': room_name})
+    uid = request.GET.get('uid', '')
+    return render(request, 'conferencing/room.html', {
+        'room_name': room_name,
+        'uid': uid
+    })
 
 # Agora Token Generation View
 def get_agora_token(request):
