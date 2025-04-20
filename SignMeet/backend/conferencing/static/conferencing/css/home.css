@@ -74,7 +74,7 @@ body {
   
   /* Room Section */
   #roomSection {
-    max-width: 1000px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
   }
@@ -87,25 +87,49 @@ body {
     margin-bottom: 20px;
   }
   
-  #video_container video,
-  #video_container div {
+  /* User video container styling */
+  .user-video-container {
+    position: relative;
     border-radius: 8px;
-    background-color: #222;
     overflow: hidden;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    width: 320px; /* Larger display size */
+    margin-bottom: 10px;
   }
   
-  /* Local video styling */
-  #video_container video {
-    width: 229px;
-    height: 229px;
+  /* Both local and remote videos will have the same dimensions */
+  .video-element {
+    width: 100%;
+    height: 240px; /* Increased height for better display */
     object-fit: cover;
+    background-color: #222;
   }
   
-  /* Remote video styling */
-  #video_container div[id^="remote-user-"] {
-    width: 400px;
-    height: 300px;
+  /* Style for the user name labels */
+  .user-name-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 5px 10px;
+    font-size: 14px;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: auto;
+    max-width: 70%;
+  }
+  
+  /* Make sure remote users have consistent sizing */
+  div[id^="remote-container-"] {
+    width: 320px;
+  }
+  
+  div[id^="remote-user-"] {
+    width: 100%;
+    height: 240px;
   }
   
   /* Controls */
@@ -158,6 +182,9 @@ body {
     font-size: 18px;
     margin-top: 20px;
     min-height: 30px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
   }
   
   /* Responsive design */
@@ -176,8 +203,8 @@ body {
       padding: 10px 15px;
     }
     
-    #video_container div[id^="remote-user-"] {
+    .user-video-container {
       width: 100%;
-      height: 250px;
+      max-width: 320px;
     }
   }
