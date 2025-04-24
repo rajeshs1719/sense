@@ -4,7 +4,7 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 import conferencing.routing
 
-print("Loading asgi.py, importing conferencing.routing:", conferencing.routing)
+
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "SignMeet.settings")
 
