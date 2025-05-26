@@ -1,210 +1,104 @@
-/* Main Styles */
+css
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f8f9fa;
-    color: #333;
-    line-height: 1.6;
+    font-family: Arial, sans-serif;
     margin: 0;
-    padding: 0;
-  }
-  
-  #title {
+    padding: 20px;
+    background-color: #f4f4f4;
+}
+#title {
     text-align: center;
-    color: #2c3e50;
-    margin: 25px 0;
-    font-size: 2.2rem;
-  }
-  
-  /* Join Section */
-  #joinSection {
-    max-width: 500px;
-    margin: 0 auto;
-    background: white;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  }
-  
-  #roomForm {
+    color: #333;
+}
+#joinSection {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+#roomForm {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-  }
-  
-  #roomForm div {
+    gap: 10px;
+    max-width: 400px;
+    width: 100%;
+}
+#roomForm div {
     display: flex;
     flex-direction: column;
-  }
-  
-  #roomForm label {
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #444;
-  }
-  
-  #roomForm input {
-    padding: 12px 15px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
+}
+label {
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+input {
+    padding: 8px;
     font-size: 16px;
-    transition: border-color 0.3s;
-  }
-  
-  #roomForm input:focus {
-    border-color: #3498db;
-    outline: none;
-    box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
-  }
-  
-  #roomForm button {
-    background-color: #3498db;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+#roomForm button {
+    padding: 10px;
+    font-size: 16px;
+    background-color: #007bff;
     color: white;
     border: none;
-    padding: 14px;
-    border-radius: 6px;
-    font-size: 16px;
-    font-weight: 600;
+    border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.3s;
-  }
-  
-  #roomForm button:hover {
-    background-color: #2980b9;
-  }
-  
-  /* Room Section */
-  #roomSection {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-  }
-  
-  #video_container {
+}
+#roomForm button:hover {
+    background-color: #0056b3;
+}
+#roomSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+#video_container {
     display: flex;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 10px;
     justify-content: center;
     margin-bottom: 20px;
-  }
-  
-  /* User video container styling */
-  .user-video-container {
+}
+.user-video-container {
     position: relative;
+}
+.video-element {
+    width: 400px;
+    height: 300px;
+    border: 2px solid #333;
     border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    width: 320px; /* Larger display size */
-    margin-bottom: 10px;
-  }
-  
-  /* Both local and remote videos will have the same dimensions */
-  .video-element {
-    width: 100%;
-    height: 240px; /* Increased height for better display */
-    object-fit: cover;
-    background-color: #222;
-  }
-  
-  /* Style for the user name labels */
-  .user-name-label {
+    background-color: #000;
+}
+.user-name-label {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    background-color: rgba(0, 0, 0, 0.6);
-    color: white;
-    padding: 5px 10px;
-    font-size: 14px;
-    text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: auto;
-    max-width: 70%;
-  }
-  
-  /* Make sure remote users have consistent sizing */
-  div[id^="remote-container-"] {
-    width: 320px;
-  }
-  
-  div[id^="remote-user-"] {
-    width: 100%;
-    height: 240px;
-  }
-  
-  /* Controls */
-  #controls {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-    margin-bottom: 20px;
-  }
-  
-  #controls button {
-    background-color: #3498db;
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 30px;
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    min-width: 120px;
-  }
-  
-  #controls button:hover {
-    background-color: #2980b9;
-    transform: translateY(-2px);
-  }
-  
-  #controls button:disabled {
-    background-color: #95a5a6;
-    cursor: not-allowed;
-    transform: none;
-  }
-  
-  #leaveBtn {
-    background-color: #e74c3c !important;
-  }
-  
-  #leaveBtn:hover {
-    background-color: #c0392b !important;
-  }
-  
-  /* Subtitle area */
-  #subtitle {
+    bottom: 10px;
+    left: 10px;
     background-color: rgba(0, 0, 0, 0.7);
     color: white;
-    padding: 15px;
-    border-radius: 8px;
+    padding: 5px;
+    border-radius: 3px;
+}
+#controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+}
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+#subtitle {
     text-align: center;
     font-size: 18px;
-    margin-top: 20px;
-    min-height: 30px;
-    max-width: 800px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  
-  /* Responsive design */
-  @media (max-width: 768px) {
-    #joinSection {
-      padding: 20px;
-      margin: 0 15px;
-    }
-    
-    #controls {
-      flex-wrap: wrap;
-    }
-    
-    #controls button {
-      min-width: 100px;
-      padding: 10px 15px;
-    }
-    
-    .user-video-container {
-      width: 100%;
-      max-width: 320px;
-    }
-  }
+    color: #333;
+}
