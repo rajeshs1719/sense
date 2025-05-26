@@ -1,4 +1,4 @@
-```html
+
 {% extends 'conferencing/base.html' %}
 {% load static %}
 
@@ -403,9 +403,9 @@
     };
     ws.onclose = () => console.log("WebSocket connection closed");
     ws.onerror = (error) => console.error("WebSocket error:", error);
-=======
-<script src="{% static 'conferencing/js/home.js' %}">
+
+
 
 </script>
+<script src="{% static 'conferencing/js/home.js' %}"></script>
 {% endblock %}
-```

@@ -19,6 +19,7 @@ MODEL_PATH = os.path.join(script_dir, 'mobilenetv2_asl_trained_improved.pth')
 if os.path.exists(MODEL_PATH):
     model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device('cpu')))
     print(f"MobileNetV2 ASL model loaded from {MODEL_PATH}")
+    
 else:
     raise FileNotFoundError(f"Model file not found at {MODEL_PATH}")
 

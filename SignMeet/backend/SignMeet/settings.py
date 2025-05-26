@@ -61,7 +61,7 @@ WSGI_APPLICATION = 'SignMeet.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': str(BASE_DIR / 'db.sqlite3'),  # Convert Path to string
+        'NAME': str(BASE_DIR / 'db.sqlite3'),    
     }
 }
 
