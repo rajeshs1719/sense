@@ -1,0 +1,153 @@
+.chat-toggle-icon {
+    position: fixed;
+    bottom: 25px;
+    left: 25px; /* ✅ Left side of the screen */
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 65px;
+    height: 65px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    z-index: 999;
+    transition: all 0.3s ease;
+}
+
+.chat-toggle-icon:hover {
+    transform: scale(1.1) rotate(10deg);
+    background: linear-gradient(135deg, #0056b3, #004099);
+}
+
+/* --- Main Chat Window (Hidden by default) --- */
+.chat-container {
+    position: fixed;
+    bottom: 100px; /* ✅ Appears above the toggle button */
+    left: 25px; /* ✅ Aligns to left edge */
+    width: 380px;
+    height: 520px;
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.3s ease-out;
+}
+
+.chat-container.active {
+    display: flex;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+
+
+/* --- Header --- */
+.chat-header {
+    background-color: #007bff;
+    color: white;
+    padding: 15px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    text-align: center;
+    position: relative; /* For positioning the close button */
+}
+
+.chat-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+/* --- Close Button (in header) --- */
+.chat-close-btn {
+    position: absolute;
+    top: 50%;
+    right: 15px;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.8rem;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+/* --- Message Area --- */
+.chat-window {
+    flex-grow: 1; /* Makes it fill the available height */
+    overflow-y: auto; /* Adds scrolling for messages */
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 300px; /* Set a fixed height */
+}
+
+/* --- Individual Messages --- */
+.message {
+    padding: 8px 12px;
+    border-radius: 18px;
+    max-width: 80%;
+    word-wrap: break-word;
+}
+
+.message p {
+    margin: 0;
+}
+
+.bot-message {
+    background-color: #e9e9eb;
+    color: #000;
+    align-self: flex-start;
+}
+
+.user-message {
+    background-color: #007bff;
+    color: white;
+    align-self: flex-end;
+}
+
+/* --- Input Form --- */
+.chat-form {
+    display: flex;
+    padding: 15px;
+    border-top: 1px solid #ddd;
+}
+
+#message-input {
+    flex-grow: 1;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    padding: 10px 15px;
+    font-size: 1rem;
+    margin-right: 10px;
+}
+
+#message-input:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.chat-form button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.chat-form button:hover {
+    background-color: #0056b3;
+}

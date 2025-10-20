@@ -1,0 +1,19 @@
+```html
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SenseMeet - {% block title %}{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'conferencing/css/styles.css' %}">
+</head>
+<body>
+    <header>
+        <h1>SenseMeet</h1>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
+```

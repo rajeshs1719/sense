@@ -1,0 +1,20 @@
+{% load static %}
+<div class="chat-container" id="chat-container">
+    
+    <div class="chat-header">
+        <h2>My Gemini Bot</h2>
+        <button id="chat-close-btn" class="chat-close-btn">&times;</button>
+    </div>
+    
+    <div class="chat-window" id="chat-window">
+        <div class="message bot-message">
+            <p>Hello! How can I help you today?</p>
+        </div>
+    </div>
+    
+    <form class="chat-form" id="chat-form">
+        {% csrf_token %} 
+        <input type="text" id="message-input" placeholder="Type your message...">
+        <button type="submit">Send</button>
+    </form>
+</div>

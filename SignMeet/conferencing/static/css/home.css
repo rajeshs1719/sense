@@ -1,0 +1,293 @@
+/* 🌌 ===== NAVBAR ===== */
+#navbar {
+    width: 90%;
+    height: 70px;
+    background: rgba(15, 15, 15, 0.7);
+    backdrop-filter: blur(16px) saturate(150%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 50px;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.6);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    transition: background 0.3s ease;
+}
+
+#navbar:hover {
+    background: rgba(15, 15, 15, 0.85);
+}
+
+#navbar h1 {
+    color: #00bfff;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-shadow: 0 0 12px rgba(0, 191, 255, 0.5);
+    margin: 0;
+    user-select: none;
+}
+
+.nav-right {
+    display: flex;
+    gap: 15px;
+}
+
+.nav-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #e0e0e0;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+.nav-btn:hover {
+    background: rgba(0, 191, 255, 0.15);
+    color: #00bfff;
+    border-color: rgba(0, 191, 255, 0.4);
+    box-shadow: 0 0 10px rgba(0, 191, 255, 0.4);
+}
+
+/* 🌍 ===== GLOBAL ===== */
+body {
+    font-family: 'Inter', 'Poppins', 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: radial-gradient(circle at top left, #0a0a0a, #121212, #1c1c1c);
+    color: #eaeaea;
+    overflow-x: hidden;
+}
+
+/* 🏷 ===== TITLES ===== */
+#title, h2 {
+    text-align: center;
+    color: #f1f1f1;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+    margin-top: 50px;
+    font-weight: 600;
+}
+h2 span {
+    color: #00bfff;
+    text-shadow: 0 0 20px rgba(0, 191, 255, 0.6);
+}
+
+/* 🎥 ===== MEETING AREA ===== */
+#meet {
+    width: 85%;
+    max-width: 1200px;
+    height: 600px;
+    margin: 40px auto;
+    border-radius: 18px;
+    background: linear-gradient(145deg, rgba(10, 10, 10, 0.95), rgba(20, 20, 20, 0.85));
+    box-shadow: 0 12px 50px rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(14px);
+    transition: all 0.4s ease;
+}
+#meet:hover {
+    transform: scale(1.01);
+}
+
+/* 💬 ===== SUBTITLE ===== */
+#subtitle {
+    text-align: center;
+    font-size: 18px;
+    color: #aaa;
+    margin-top: 20px;
+    letter-spacing: 0.5px;
+}
+
+/* 🚪 ===== JOIN SECTION ===== */
+#joinSection {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+/* 🧾 ===== ROOM FORM ===== */
+#roomForm {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 420px;
+    width: 100%;
+    padding: 25px;
+    background: rgba(25, 25, 25, 0.9);
+    border-radius: 14px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    transition: all 0.3s ease;
+}
+#roomForm:hover {
+    transform: translateY(-4px);
+}
+
+label {
+    font-weight: 600;
+    color: #ccc;
+    font-size: 15px;
+    margin-bottom: 6px;
+}
+
+input {
+    padding: 12px 14px;
+    font-size: 15px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background-color: #111;
+    color: #eee;
+    transition: all 0.25s ease;
+}
+input:focus {
+    border-color: #00bfff;
+    box-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+    outline: none;
+}
+
+/* 🟦 ===== BUTTONS ===== */
+#roomForm button, button {
+    padding: 10px;
+    font-size: 16px;
+    background: linear-gradient(90deg, #007bff, #00bfff);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s ease;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+#roomForm button:hover, button:hover {
+    background: linear-gradient(90deg, #0056b3, #0099cc);
+    box-shadow: 0 0 18px rgba(0, 150, 255, 0.6);
+    animation: glow 1.2s ease-in-out infinite alternate;
+}
+button:disabled {
+    background-color: #333;
+    color: #777;
+    cursor: not-allowed;
+}
+
+@keyframes glow {
+    from { box-shadow: 0 0 6px #00bfff, 0 0 12px #007bff; }
+    to { box-shadow: 0 0 20px #00bfff, 0 0 35px #007bff; }
+}
+
+/* 👥 ===== ROOM SECTION ===== */
+#roomSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 📹 ===== VIDEO CONTAINER ===== */
+#video_container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.user-video-container {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.user-video-container:hover {
+    transform: scale(1.04);
+    box-shadow: 0 0 20px rgba(0, 191, 255, 0.4);
+}
+
+.video-element {
+    width: 400px;
+    height: 300px;
+    border: none;
+    border-radius: 12px;
+    background-color: #000;
+    object-fit: cover;
+}
+
+.user-name-label {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #00bfff;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+/* 🎛 ===== CONTROLS ===== */
+#controls {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 25px;
+}
+
+/* 🌀 ===== TRANSITIONS ===== */
+button, input, .user-video-container {
+    transition: all 0.3s ease-in-out;
+}
+
+/* 📱 ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 992px) {
+    #navbar {
+        padding: 0 30px;
+    }
+    .video-element {
+        width: 320px;
+        height: 240px;
+    }
+}
+
+@media (max-width: 768px) {
+    #navbar {
+        padding: 0 20px;
+        flex-direction: column;
+        height: auto;
+        gap: 10px;
+        text-align: center;
+    }
+    #meet {
+        width: 95%;
+        height: 420px;
+    }
+    #roomForm {
+        width: 90%;
+        padding: 18px;
+    }
+    .video-element {
+        width: 280px;
+        height: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    #meet {
+        height: 380px;
+    }
+    .video-element {
+        width: 100%;
+        height: 220px;
+    }
+    #roomForm {
+        padding: 15px;
+    }
+    label {
+        font-size: 14px;
+    }
+}

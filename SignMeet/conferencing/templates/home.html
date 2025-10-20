@@ -1,0 +1,140 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>SENSE | Jitsi + Captions Overlay</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background-color: #f7f8fa;
+      overflow: hidden;
+    }
+
+    #meet {
+      width: 100%;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* === Caption Overlay inside Jitsi === */
+    #caption-overlay {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 18px;
+      line-height: 1.4;
+      max-width: 90%;
+      text-align: center;
+      z-index: 9999;
+      /* stays above Jitsi video */
+      backdrop-filter: blur(4px);
+      transition: opacity 0.3s ease;
+    }
+
+    /* Control Panel Overlay */
+    #caption-controls {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border-radius: 10px;
+      padding: 10px 15px;
+      z-index: 10000;
+      color: #fff;
+    }
+
+    #caption-controls select,
+    #caption-controls button {
+      margin: 4px;
+      padding: 6px 10px;
+      border-radius: 5px;
+      border: none;
+      font-size: 14px;
+    }
+
+    #caption-controls button {
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+
+    #caption-controls button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ===== Jitsi Meet Container ===== -->
+  <div id="meet">
+    <div id="caption-overlay">🎙 Press “Start Captions” to begin...</div>
+
+    <div id="caption-controls">
+      <select id="stt-language">
+        <option value="en-IN">English</option>
+        <option value="hi-IN">Hindi</option>
+        <option value="ta-IN">Tamil</option>
+        <option value="te-IN">Telugu</option>
+        <option value="bn-IN">Bengali</option>
+        <option value="ml-IN">Malayalam</option>
+        <option value="mr-IN">Marathi</option>
+        <option value="gu-IN">Gujarati</option>
+        <option value="pa-IN">Punjabi</option>
+        <option value="kn-IN">Kannada</option>
+      </select>
+      <button id="start-stt">🎤 Start</button>
+      <button id="stop-stt">🛑 Stop</button>
+    </div>
+    <select id="tts-language">
+      <option value="en-IN">English</option>
+      <option value="hi-IN">Hindi</option>
+      <option value="ta-IN">Tamil</option>
+      <option value="te-IN">Telugu</option>
+      <option value="bn-IN">Bengali</option>
+      <option value="ml-IN">Malayalam</option>
+      <option value="mr-IN">Marathi</option>
+      <option value="gu-IN">Gujarati</option>
+      <option value="pa-IN">Punjabi</option>
+      <option value="kn-IN">Kannada</option>
+    </select>
+    <button id="speak-tts">🔊 Speak Text</button>
+
+  </div>
+
+  <script src="https://8x8.vc/external_api.js"></script>
+  <script src="{% static 'js/speech_overlay.js' %}"></script>
+
+  <script>
+    // ===== Initialize Jitsi Meet =====
+    const domain = "8x8.vc";
+    const options = {
+      roomName: "vpaas-magic-cookie-d25168bf67bb49e1979fb170f4793d3c/SignMeetRoom",
+      jwt: "eyJraWQiOiJ2cGFhcy1tYWdpYy1jb29raWUtZDI1MTY4YmY2N2JiNDllMTk3OWZiMTcwZjQ3OTNkM2MvOWUwOTkwLVNBTVBMRV9BUFAiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJqaXRzaSIsImlzcyI6ImNoYXQiLCJpYXQiOjE3NjA5NDQ0NTksImV4cCI6MTc2MDk1MTY1OSwibmJmIjoxNzYwOTQ0NDU0LCJzdWIiOiJ2cGFhcy1tYWdpYy1jb29raWUtZDI1MTY4YmY2N2JiNDllMTk3OWZiMTcwZjQ3OTNkM2MiLCJjb250ZXh0Ijp7ImZlYXR1cmVzIjp7ImxpdmVzdHJlYW1pbmciOnRydWUsImZpbGUtdXBsb2FkIjp0cnVlLCJvdXRib3VuZC1jYWxsIjp0cnVlLCJzaXAtb3V0Ym91bmQtY2FsbCI6ZmFsc2UsInRyYW5zY3JpcHRpb24iOnRydWUsImxpc3QtdmlzaXRvcnMiOmZhbHNlLCJyZWNvcmRpbmciOnRydWUsImZsaXAiOmZhbHNlfSwidXNlciI6eyJoaWRkZW4tZnJvbS1yZWNvcmRlciI6ZmFsc2UsIm1vZGVyYXRvciI6dHJ1ZSwibmFtZSI6IjFqdDIyY3MxMTYiLCJpZCI6Imdvb2dsZS1vYXV0aDJ8MTAxNTM3MzI5NTEwMjk3OTM3ODQ1IiwiYXZhdGFyIjoiIiwiZW1haWwiOiIxanQyMmNzMTE2QGp5b3RoeWl0LmFjLmluIn19LCJyb29tIjoiKiJ9.I-ki6Gdow8XToAYsb_Th4GHabqgOkJyOymDq9AJVU9rn-GSdeXt4P3xURyuwBZV0g1Ms4Vhl9PQXhaeiVWTjIW2omTWJyLjj5q2OQfUIATpmbr-gFxX6hohO64hdtU3-nBnCq9vY8HIpg2FdD_lrBWFy5g4ZpZS9TPrzZZchkMIROA82N7cDK6dfFL0rzWD15rEFh_6uFt0XTassLfJvF4Y8W-v5-gH3KPUIX_FC8vxIqKp8XPY3QkD81H5p4OKhhT8iZYQCTG87ihUOHX2nRc8ioGpAypTZdH1GaCpmo34rD0-u2JlLV-JzNtOekQ4yqPGaRbZSvtAOmTU9suQIcg",
+      parentNode: document.querySelector('#meet'),
+      width: "100%",
+      height: "100%",
+      configOverwrite: { prejoinPageEnabled: false }
+    };
+    const api = new JitsiMeetExternalAPI(domain, options);
+  </script>
+
+  <form class="chat-form" id="chat-form">
+    {% csrf_token %}
+    <input type="text" id="message-input" placeholder="Type or record message...">
+    <button type="button" id="record-button" title="Record Message">🎤</button>
+    <button type="submit" title="Send Message">Send</button>
+  </form>
+
+</body>
+
+</html>
