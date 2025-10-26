@@ -4,8 +4,11 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>SENSE | Jitsi + Captions Overlay</title>
-  <style>
+  <title>SENSE | Video Call</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/home.css' %}">
+  <link rel="stylesheet" href="{% static 'css/bot.css' %}">
+  <!-- <style>
     body {
       margin: 0;
       font-family: "Segoe UI", sans-serif;
@@ -70,7 +73,7 @@
     #caption-controls button:hover {
       background: #0056b3;
     }
-  </style>
+  </style> -->
 </head>
 
 <body>
@@ -95,19 +98,24 @@
       <button id="start-stt">🎤 Start</button>
       <button id="stop-stt">🛑 Stop</button>
     </div>
-    <select id="tts-language">
-      <option value="en-IN">English</option>
-      <option value="hi-IN">Hindi</option>
-      <option value="ta-IN">Tamil</option>
-      <option value="te-IN">Telugu</option>
-      <option value="bn-IN">Bengali</option>
-      <option value="ml-IN">Malayalam</option>
-      <option value="mr-IN">Marathi</option>
-      <option value="gu-IN">Gujarati</option>
-      <option value="pa-IN">Punjabi</option>
-      <option value="kn-IN">Kannada</option>
-    </select>
-    <button id="speak-tts">🔊 Speak Text</button>
+
+
+
+    <form id="ttsForm">
+      <input type="text" id="textInput" placeholder="Enter text..." size="40" required>
+      <select id="langSelect">
+        <option value="en">English</option>
+        <option value="hi">Hindi</option>
+        <option value="ta">Tamil</option>
+        <option value="te">Telugu</option>
+        <option value="ml">Malayalam</option>
+      </select>
+      <button type="submit">Speak</button>
+    </form>
+
+    <audio id="audioPlayer"></audio>
+
+
 
   </div>
 
@@ -119,21 +127,36 @@
     const domain = "8x8.vc";
     const options = {
       roomName: "vpaas-magic-cookie-d25168bf67bb49e1979fb170f4793d3c/SignMeetRoom",
-      jwt: "eyJraWQiOiJ2cGFhcy1tYWdpYy1jb29raWUtZDI1MTY4YmY2N2JiNDllMTk3OWZiMTcwZjQ3OTNkM2MvOWUwOTkwLVNBTVBMRV9BUFAiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJqaXRzaSIsImlzcyI6ImNoYXQiLCJpYXQiOjE3NjA5NDQ0NTksImV4cCI6MTc2MDk1MTY1OSwibmJmIjoxNzYwOTQ0NDU0LCJzdWIiOiJ2cGFhcy1tYWdpYy1jb29raWUtZDI1MTY4YmY2N2JiNDllMTk3OWZiMTcwZjQ3OTNkM2MiLCJjb250ZXh0Ijp7ImZlYXR1cmVzIjp7ImxpdmVzdHJlYW1pbmciOnRydWUsImZpbGUtdXBsb2FkIjp0cnVlLCJvdXRib3VuZC1jYWxsIjp0cnVlLCJzaXAtb3V0Ym91bmQtY2FsbCI6ZmFsc2UsInRyYW5zY3JpcHRpb24iOnRydWUsImxpc3QtdmlzaXRvcnMiOmZhbHNlLCJyZWNvcmRpbmciOnRydWUsImZsaXAiOmZhbHNlfSwidXNlciI6eyJoaWRkZW4tZnJvbS1yZWNvcmRlciI6ZmFsc2UsIm1vZGVyYXRvciI6dHJ1ZSwibmFtZSI6IjFqdDIyY3MxMTYiLCJpZCI6Imdvb2dsZS1vYXV0aDJ8MTAxNTM3MzI5NTEwMjk3OTM3ODQ1IiwiYXZhdGFyIjoiIiwiZW1haWwiOiIxanQyMmNzMTE2QGp5b3RoeWl0LmFjLmluIn19LCJyb29tIjoiKiJ9.I-ki6Gdow8XToAYsb_Th4GHabqgOkJyOymDq9AJVU9rn-GSdeXt4P3xURyuwBZV0g1Ms4Vhl9PQXhaeiVWTjIW2omTWJyLjj5q2OQfUIATpmbr-gFxX6hohO64hdtU3-nBnCq9vY8HIpg2FdD_lrBWFy5g4ZpZS9TPrzZZchkMIROA82N7cDK6dfFL0rzWD15rEFh_6uFt0XTassLfJvF4Y8W-v5-gH3KPUIX_FC8vxIqKp8XPY3QkD81H5p4OKhhT8iZYQCTG87ihUOHX2nRc8ioGpAypTZdH1GaCpmo34rD0-u2JlLV-JzNtOekQ4yqPGaRbZSvtAOmTU9suQIcg",
+      jwt: "eyJraWQiOiJ2cGFhcy1tYWdpYy1jb29raWUtZDI1MTY4YmY2N2JiNDllMTk3OWZiMTcwZjQ3OTNkM2MvOWUwOTkwLVNBTVBMRV9BUFAiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJqaXRzaSIsImlzcyI6ImNoYXQiLCJpYXQiOjE3NjE0NjI4OTAsImV4cCI6MTc2MTQ3MDA5MCwibmJmIjoxNzYxNDYyODg1LCJzdWIiOiJ2cGFhcy1tYWdpYy1jb29raWUtZDI1MTY4YmY2N2JiNDllMTk3OWZiMTcwZjQ3OTNkM2MiLCJjb250ZXh0Ijp7ImZlYXR1cmVzIjp7ImxpdmVzdHJlYW1pbmciOnRydWUsImZpbGUtdXBsb2FkIjp0cnVlLCJvdXRib3VuZC1jYWxsIjp0cnVlLCJzaXAtb3V0Ym91bmQtY2FsbCI6ZmFsc2UsInRyYW5zY3JpcHRpb24iOnRydWUsImxpc3QtdmlzaXRvcnMiOmZhbHNlLCJyZWNvcmRpbmciOnRydWUsImZsaXAiOmZhbHNlfSwidXNlciI6eyJoaWRkZW4tZnJvbS1yZWNvcmRlciI6ZmFsc2UsIm1vZGVyYXRvciI6dHJ1ZSwibmFtZSI6IjFqdDIyY3MxMTYiLCJpZCI6Imdvb2dsZS1vYXV0aDJ8MTAxNTM3MzI5NTEwMjk3OTM3ODQ1IiwiYXZhdGFyIjoiIiwiZW1haWwiOiIxanQyMmNzMTE2QGp5b3RoeWl0LmFjLmluIn19LCJyb29tIjoiKiJ9.Ib1A4CnnVwiBXdFo9VD4er2qOwpSj4iyXsPpW_5no4OVHEZ01zivxbyDPmOYO-H4AnnB82rA4tNoHCuZSq4z8TxdekokbeOLkyG81M-A1i5HQ9b2wQUEHgjJV3zY7zU3HiT3NiYM_b3BOjk29Y29956bxWbJyWE8JfH7D7PGnS_npjiUVVGazGLe2V92nAkAYX2_rLEW76YylBgagCX5WRCfw4Ozw7REPqPYmXVFRj41-D8SCkyNHn3x6cVr04bkBDmvTtdnXCZ7voarNwE9eoB4rUkrNFJiBAm_8i8e8vJeRlNnsb_byQzpVpcAWMjmgkt-ZMx9VDFZ9ltE-5ey2g",
       parentNode: document.querySelector('#meet'),
       width: "100%",
       height: "100%",
       configOverwrite: { prejoinPageEnabled: false }
     };
     const api = new JitsiMeetExternalAPI(domain, options);
+
+    document.getElementById('ttsForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = document.getElementById('textInput').value;
+      const lang = document.getElementById('langSelect').value;
+
+      const url = `/api/dynamic_tts/?text=${encodeURIComponent(text)}&lang=${lang}`;
+      const audioPlayer = document.getElementById('audioPlayer');
+      audioPlayer.src = url;
+      audioPlayer.play().catch(err => console.warn("Autoplay blocked:", err));
+    });
+
   </script>
 
-  <form class="chat-form" id="chat-form">
-    {% csrf_token %}
-    <input type="text" id="message-input" placeholder="Type or record message...">
-    <button type="button" id="record-button" title="Record Message">🎤</button>
-    <button type="submit" title="Send Message">Send</button>
-  </form>
+  <button id="chat-toggle-icon" class="chat-toggle-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
+      <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
+    </svg>
+  </button>
+
+  {% include 'partials/bot.html' %}
+
+  <script src="{% static 'js/bot.js' %}"></script>
 
 </body>
 

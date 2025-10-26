@@ -192,37 +192,34 @@ def process_caption(request):
         return JsonResponse({"audio_url": "/media/" + os.path.basename(tmp.name)})
 
 
-def generate_dynamic_tts(request: HttpRequest) -> HttpResponse:
+def generate_dynamic_tts(request):
     """
-    Translates text and converts it to speech.
-    Expects 'text' (in English) and 'lang' (target language)
-    Example: /api/dynamic_tts/?text=Welcome&lang=hi
+    GET /api/dynamic_tts/?text=Hello&lang=hi
+    or via POST form with 'text' and 'lang'
     """
-    base_text = request.GET.get('text', 'Hello')
-    lang_code = request.GET.get('lang', 'en') # e.g., 'hi', 'ta', 'te'
+    text = request.GET.get('text') or request.POST.get('text')
+    lang = request.GET.get('lang') or request.POST.get('lang') or 'en'
 
-    if not base_text:
+    if not text:
         return HttpResponse("No text provided", status=400)
 
     try:
-        # --- 1. Translate the text ---
+        # 1️⃣ Translate to target language
         translator = Translator()
-        translated = translator.translate(base_text, dest=lang_code)
+        translated = translator.translate(text, dest=lang)
         translated_text = translated.text
 
-        # --- 2. Convert translated text to speech ---
+        # 2️⃣ Generate speech from translated text
         mp3_fp = io.BytesIO()
-        tts = gTTS(text=translated_text, lang=lang_code, tld='co.in', slow=False)
+        tts = gTTS(text=translated_text, lang=lang, slow=False)
         tts.write_to_fp(mp3_fp)
         mp3_fp.seek(0)
 
-        # --- 3. Send the audio back ---
-        response = HttpResponse(mp3_fp, content_type='audio/mpeg')
+        # 3️⃣ Return the audio stream
+        response = HttpResponse(mp3_fp.read(), content_type='audio/mpeg')
+        response['Content-Disposition'] = 'inline; filename="speech.mp3"'
         return response
 
     except Exception as e:
-        # This will catch errors if a language is not supported
-        return HttpResponse(f"Error generating dynamic TTS: {e}", status=500)
-    
-
+        return HttpResponse(f"Error: {e}", status=500)
 
