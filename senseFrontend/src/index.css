@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 240 45% 8%;
+    --foreground: 210 100% 98%;
+
+    --card: 240 40% 12%;
+    --card-foreground: 210 100% 98%;
+
+    --popover: 240 40% 12%;
+    --popover-foreground: 210 100% 98%;
+
+    --primary: 190 95% 55%;
+    --primary-foreground: 240 45% 8%;
+
+    --secondary: 260 90% 65%;
+    --secondary-foreground: 210 100% 98%;
+
+    --muted: 240 30% 20%;
+    --muted-foreground: 210 40% 70%;
+
+    --accent: 260 90% 65%;
+    --accent-foreground: 210 100% 98%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 100% 98%;
+
+    --border: 240 30% 20%;
+    --input: 240 30% 20%;
+    --ring: 190 95% 55%;
+
+    --radius: 0.75rem;
+
+    --glow-cyan: 190 100% 60%;
+    --glow-violet: 260 95% 70%;
+
+    --gradient-hero: linear-gradient(135deg, hsl(240 50% 10%) 0%, hsl(260 40% 15%) 50%, hsl(240 45% 8%) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(240 40% 14% / 0.6) 0%, hsl(260 35% 18% / 0.4) 100%);
+    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(var(--glow-cyan) / 0.15) 0%, transparent 70%);
+
+    --shadow-glow-cyan: 0 0 40px hsl(var(--glow-cyan) / 0.3);
+    --shadow-glow-violet: 0 0 40px hsl(var(--glow-violet) / 0.3);
+    --shadow-card: 0 8px 32px hsl(240 50% 5% / 0.4);
+
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* In your index.css file */
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+
+    /* ----- ADD THESE LINES ----- */
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* --------------------------- */
+  }
+}
