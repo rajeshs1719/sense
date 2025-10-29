@@ -264,6 +264,85 @@ CLASS_NAMES = [
     'U', 'V', 'W', 'X', 'Y', 'Z'
 ]
 
+@csrf_exempt
+def detect_sign(request):
+    if request.method == 'POST':
+        if not classifier_model or not hand_detector:
+                 return JsonResponse({'error': 'Models not loaded on server'}, status=500)
+                 
+        image_data = request.POST.get('image')
+        if not image_data:
+            return JsonResponse({'error': 'No image received'}, status=400)
+
+        try:
+            # --- Decode image ---
+            _, imgstr = image_data.split(';base64,')
+            img_bytes = base64.b64decode(imgstr)
+            original_pil_image = Image.open(io.BytesIO(img_bytes)).convert('RGB')
+            frame_rgb = np.array(original_pil_image)
+
+            # --- STEP 1: DETECT HAND ---
+            results = hand_detector.process(frame_rgb)
+
+            if not results.multi_hand_landmarks:
+                return JsonResponse({'label': 'No Hand', 'confidence': 0})
+
+            # --- Hand IS found, get landmarks ---
+            hand_landmarks = results.multi_hand_landmarks[0]
+            img_height, img_width, _ = frame_rgb.shape
+
+            # --- ❌ REMOVED FIST CHECK ---
+            # We no longer check for 'SPACE' here.
+
+            # --- Proceed to Keras model ---
+            
+            # (Calculate bounding box)
+            x_coords = [landmark.x * img_width for landmark in hand_landmarks.landmark]
+            y_coords = [landmark.y * img_height for landmark in hand_landmarks.landmark]
+            
+            x_min = int(min(x_coords))
+            x_max = int(max(x_coords))
+            y_min = int(min(y_coords))
+            y_max = int(max(y_coords))
+
+            padding = 20
+            x_min = max(0, x_min - padding)
+            y_min = max(0, y_min - padding)
+            x_max = min(img_width, x_max + padding)
+            y_max = min(img_height, y_max + padding)
+
+            # --- Crop, Squarify, and Classify ---
+            cropped_hand_img = original_pil_image.crop((x_min, y_min, x_max, y_max))
+            square_hand_img = squarify_image(cropped_hand_img)
+            image_to_predict = square_hand_img.resize((224, 224))
+            
+            img_array = img_to_array(image_to_predict)
+            img_array = np.expand_dims(img_array / 255.0, axis=0)
+
+            # Predict
+            preds = classifier_model.predict(img_array)
+            class_index = np.argmax(preds[0])
+            confidence = float(np.max(preds[0]))
+            
+            # Confidence threshold
+            if confidence < 0.6: # 60% threshold
+                 return JsonResponse({'label': 'Unknown', 'confidence': 0})
+                 
+            predicted_label = CLASS_NAMES[class_index]
+
+            return JsonResponse({
+                'label': predicted_label,
+                'confidence': round(confidence * 100, 2)
+            })
+        
+        except Exception as e:
+            import traceback
+            print(f"Error during prediction: {e}")
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
 # --- ⭐️ 3. HELPER FUNCTION TO PAD IMAGE TO A SQUARE ⭐️ ---
 def squarify_image(pil_img):
     """Pads a PIL image to be square."""

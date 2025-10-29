@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
+
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 
 </head>
@@ -36,22 +36,24 @@
     <aside class="tools-sidebar">
 
       <div class="tool-section" id="sign-language-tool">
-        <h3>Sign Language</h3>
-        <p>Real-time ASL detection.</p>
-        <button id="toggle-sign-detection" class="tool-btn">Start Detection</button>
-        <video id="sign-video-feed" width="300" height="225" muted playsinline autoplay
-          style="display: none; border-radius: 8px; margin-top: 10px;"></video>
-        
-        <div id="sign-display-area"
-          style="display: none; margin-top: 10px; max-height: 150px; overflow-y: auto; background: #f0f0f0; border-radius: 8px; padding: 10px;">
-          <strong>Detected Signs:</strong>
-          <ul id="sign-list" style="list-style: none; padding: 0; margin: 5px 0 0 0;"></ul>
-        </div>
-
-        <canvas id="sign-canvas" width="224" height="224" style="display: none;"></canvas>
+      <h3>Sign Language</h3>
+      <p>Real-time ASL detection.</p>
+      <button id="toggle-sign-detection" class="tool-btn">Start Detection</button>
+      <video id="sign-video-feed" width="300" height="225" muted playsinline autoplay
+        style="display: none; border-radius: 8px; margin-top: 10px;"></video>
+      
+      <div id="sign-display-area"
+        style="display: none; margin-top: 10px; min-height: 50px; background: #f0f0f0; border-radius: 8px; padding: 10px;">
+        <p id="sign-sentence" style="font-size: 1.3em; font-weight: 500; min-height: 1.5em; word-wrap: break-word;"></p>
       </div>
 
+      <div id="sign-controls" style="display: none; margin-top: 10px; gap: 10px;">
+        <button id="sign-add-space" class="tool-btn" style="flex: 1;">Space</button>
+        <button id="sign-clear-all" class="tool-btn danger" style="flex: 1;">Clear</button>
+      </div>
 
+      <canvas id="sign-canvas" width="224" height="224" style="display: none;"></canvas>
+    </div>
       <div class="tool-section" id="captions-tool">
         <h3>Live Captions (STT)</h3>
         <p>Transcribe spoken audio.</p>
@@ -142,12 +144,39 @@
     const signCanvas = document.getElementById('sign-canvas');
     const signCtx = signCanvas.getContext('2d');
 
-    // Get the CORRECT elements from the HTML
+    // Get display elements
     const signDisplayArea = document.getElementById('sign-display-area');
-    const signList = document.getElementById('sign-list');
+    const signSentence = document.getElementById('sign-sentence');
+    
+    // ⭐️ 2. GET NEW BUTTONS & CONTROLS DIV ⭐️
+    const signControls = document.getElementById('sign-controls');
+    const signAddSpaceBtn = document.getElementById('sign-add-space');
+    const signClearAllBtn = document.getElementById('sign-clear-all');
+
 
     let signStream = null;
     let signInterval = null;
+
+    // --- State variables ---
+    let currentSignText = "";
+    let lastDetectedSign = ""; 
+    let lastSignTimestamp = 0; 
+
+    // ⭐️ 3. ADD EVENT LISTENERS FOR NEW BUTTONS ⭐️
+    signAddSpaceBtn.addEventListener('click', () => {
+        currentSignText += " ";
+        signSentence.innerText = currentSignText;
+        // Set last sign to prevent immediate double-detection
+        lastDetectedSign = " "; 
+        lastSignTimestamp = Date.now();
+    });
+
+    signClearAllBtn.addEventListener('click', () => {
+        currentSignText = "";
+        signSentence.innerText = currentSignText;
+        lastDetectedSign = "";
+    });
+
 
     signToggleButton.addEventListener('click', () => {
       if (signInterval) {
@@ -163,8 +192,13 @@
 
         signVideoFeed.srcObject = null;
         signVideoFeed.style.display = 'none';
-        signDisplayArea.style.display = 'none'; // Hide display area
-        signList.innerHTML = ''; // Clear the list
+        signDisplayArea.style.display = 'none'; 
+        signControls.style.display = 'none'; // Hide buttons
+
+        // Clear the sentence
+        signSentence.innerText = '';
+        currentSignText = "";
+        lastDetectedSign = "";
 
         signToggleButton.innerText = 'Start Detection';
         signToggleButton.classList.remove('danger');
@@ -172,65 +206,75 @@
       } else {
         // --- START DETECTION ---
         console.log("Starting sign detection...");
+        
+        // Reset sentence
+        signSentence.innerText = '';
+        currentSignText = "";
+        lastDetectedSign = "";
+
         navigator.mediaDevices.getUserMedia({ video: true })
           .then(stream => {
             signStream = stream;
             signVideoFeed.srcObject = stream;
             signVideoFeed.play();
             signVideoFeed.style.display = 'block';
-            signDisplayArea.style.display = 'block'; // Show display area
+            signDisplayArea.style.display = 'block';
+            signControls.style.display = 'flex'; // Show buttons
 
-            // Start capturing frames
             signInterval = setInterval(() => {
               // --- Crop video to square ---
-              // Video is 300x225. We want the center 225x225 square.
-              const videoWidth = signVideoFeed.videoWidth; // 300
-              const videoHeight = signVideoFeed.videoHeight; // 225
-              const size = Math.min(videoWidth, videoHeight); // 225
-              const x = (videoWidth - size) / 2; // (300 - 225) / 2 = 37.5
-              const y = (videoHeight - size) / 2; // (225 - 225) / 2 = 0
+              const videoWidth = signVideoFeed.videoWidth;
+              const videoHeight = signVideoFeed.videoHeight; 
+              const size = Math.min(videoWidth, videoHeight); 
+              const x = (videoWidth - size) / 2;
+              const y = (videoHeight - size) / 2;
               
-              // Draw the square crop onto the (now square) canvas
               signCtx.drawImage(
-                signVideoFeed, // source
-                x, y,          // source x, y
-                size, size,    // source width, height
-                0, 0,          // dest x, y
-                signCanvas.width, signCanvas.height // dest width, height
+                signVideoFeed, x, y, size, size,
+                0, 0, signCanvas.width, signCanvas.height
               );
               
               const imgData = signCanvas.toDataURL('image/jpeg');
 
-              // Send to backend (using jQuery $.post)
+              // Send to backend
               $.post('/detect_sign/', { image: imgData }, function (response) {
+                
                 if (response.label) {
-                  const lastSignItem = signList.querySelector('li:first-child');
-                  const newSignText = `${response.label} (${response.confidence}%)`;
-                  
-                  // Only add if it's a new sign to prevent spam
-                  if (!lastSignItem || lastSignItem.innerText !== newSignText) {
-                      const newItem = document.createElement('li');
-                      newItem.innerText = newSignText;
-                      signList.prepend(newItem); // Add new sign to the top
-                  }
+                    const detectedSign = response.label;
+                    const now = Date.now();
+
+                    // --- Duplicate Prevention Logic ---
+                    if (detectedSign === lastDetectedSign && (now - lastSignTimestamp) < 2000) {
+                        return; // It's a duplicate, ignore it
+                    }
+
+                    // ⭐️ 4. SIMPLIFIED LOGIC ⭐️
+                    // We only care about valid signs now.
+                    switch (detectedSign) {
+                        case 'No Hand':
+                        case 'Unknown':
+                            // Do nothing
+                            break;
+                        
+                        // --- Handle Regular Signs ---
+                        default:
+                            currentSignText += detectedSign;
+                    }
+                    
+                    // Update UI and state
+                    signSentence.innerText = currentSignText;
+                    lastDetectedSign = detectedSign;
+                    lastSignTimestamp = now;
                 }
+
               }).fail(function (xhr) {
                 console.error("Failed to post sign detection image. Status:", xhr.status, xhr.responseText);
-                const lastSignItem = signList.querySelector('li:first-child');
-                const errorText = 'Error (Connection failed)';
-
-                if (!lastSignItem || lastSignItem.innerText !== errorText) {
-                    const errorItem = document.createElement('li');
-                    errorItem.style.color = 'red';
-                    errorItem.innerText = errorText;
-                    signList.prepend(errorItem);
-                }
+                lastDetectedSign = "Error"; // Prevent spamming errors
               });
-            }, 1500); // Send every 1.5 seconds
+            }, 1000); 
 
             signToggleButton.innerText = 'Stop Detection';
             signToggleButton.classList.add('danger');
-
           })
           .catch(err => {
             console.error("Camera error:", err);
@@ -239,5 +283,7 @@
       }
     });
   </script>
+
 </body>
+
 </html>
