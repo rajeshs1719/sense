@@ -8,155 +8,244 @@
   {% load static %}
   <link rel="stylesheet" href="{% static 'css/home.css' %}">
   <link rel="stylesheet" href="{% static 'css/bot.css' %}">
-  <!-- <style>
-    body {
-      margin: 0;
-      font-family: "Segoe UI", sans-serif;
-      background-color: #f7f8fa;
-      overflow: hidden;
-    }
 
-    #meet {
-      width: 100%;
-      height: 100vh;
-      position: relative;
-    }
-
-    /* === Caption Overlay inside Jitsi === */
-    #caption-overlay {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.6);
-      color: #fff;
-      padding: 10px 20px;
-      border-radius: 10px;
-      font-size: 18px;
-      line-height: 1.4;
-      max-width: 90%;
-      text-align: center;
-      z-index: 9999;
-      /* stays above Jitsi video */
-      backdrop-filter: blur(4px);
-      transition: opacity 0.3s ease;
-    }
-
-    /* Control Panel Overlay */
-    #caption-controls {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(8px);
-      border-radius: 10px;
-      padding: 10px 15px;
-      z-index: 10000;
-      color: #fff;
-    }
-
-    #caption-controls select,
-    #caption-controls button {
-      margin: 4px;
-      padding: 6px 10px;
-      border-radius: 5px;
-      border: none;
-      font-size: 14px;
-    }
-
-    #caption-controls button {
-      background: #007bff;
-      color: white;
-      cursor: pointer;
-    }
-
-    #caption-controls button:hover {
-      background: #0056b3;
-    }
-  </style> -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
 
-  <!-- ===== Jitsi Meet Container ===== -->
-  <div id="meet">
-    <div id="caption-overlay">🎙 Press “Start Captions” to begin...</div>
-
-    <div id="caption-controls">
-      <select id="stt-language">
-        <option value="en-IN">English</option>
-        <option value="hi-IN">Hindi</option>
-        <option value="ta-IN">Tamil</option>
-        <option value="te-IN">Telugu</option>
-        <option value="bn-IN">Bengali</option>
-        <option value="ml-IN">Malayalam</option>
-        <option value="mr-IN">Marathi</option>
-        <option value="gu-IN">Gujarati</option>
-        <option value="pa-IN">Punjabi</option>
-        <option value="kn-IN">Kannada</option>
-      </select>
-      <button id="start-stt">🎤 Start</button>
-      <button id="stop-stt">🛑 Stop</button>
+  <nav id="navbar">
+    <h1>SENSE</h1>
+    <div class="nav-right">
+      <button class="nav-btn leave-btn">Leave Room</button>
     </div>
+  </nav>
+
+  <div class="page-container">
+
+    <main class="main-content">
+      <div id="meet">
+      </div>
+    </main>
+
+    <aside class="tools-sidebar">
+
+      <div class="tool-section" id="sign-language-tool">
+        <h3>Sign Language</h3>
+        <p>Real-time ASL detection.</p>
+        <button id="toggle-sign-detection" class="tool-btn">Start Detection</button>
+        <video id="sign-video-feed" width="300" height="225" muted playsinline autoplay
+          style="display: none; border-radius: 8px; margin-top: 10px;"></video>
+        <div id="sign-display-area"
+          style="display: none; margin-top: 10px; max-height: 150px; overflow-y: auto; background: #f0f0f0; border-radius: 8px; padding: 10px;">
+          <strong>Detected Signs:</strong>
+          <ul id="sign-list" style="list-style: none; padding: 0; margin: 5px 0 0 0;"></ul>
+        </div>
+        <canvas id="sign-canvas" width="200" height="150" style="display: none;"></canvas>
+      </div>
 
 
+      <div class="tool-section" id="captions-tool">
+        <h3>Live Captions (STT)</h3>
+        <p>Transcribe spoken audio.</p>
+        <div id="caption-controls">
+          <select id="stt-language">
+            <option value="en-IN">English</option>
+            <option value="hi-IN">Hindi (हिन्दी)</option>
+            <option value="bn-IN">Bengali (বাংলা)</option>
+            <option value="te-IN">Telugu (తెలుగు)</option>
+            <option value="mr-IN">Marathi (मराठी)</option>
+            <option value="ta-IN">Tamil (தமிழ்)</option>
+            <option value="ur-IN">Urdu (اردو)</option>
+            <option value="gu-IN">Gujarati (ગુજરાતી)</option>
+            <option value="kn-IN">Kannada (ಕನ್ನಡ)</option>
+            <option value="or-IN">Odia (ଓଡ଼ିଆ)</option>
+            <option value="ml-IN">Malayalam (മലയാളം)</option>
+            <option value="pa-IN">Punjabi (ਪੰਜਾਬੀ)</option>
+            <option value="as-IN">Assamese (অসমীয়া)</option>
+            <option value="mai-IN">Maithili (मैथिली)</option>
+            <option value="sa-IN">Sanskrit (संस्कृतम्)</option>
+            <option value="sat-IN">Santali (ᱥᱟᱱᱛᱟᱲᱤ)</option>
+            <option value="ks-IN">Kashmiri (कश्मीरी / كشميري)</option>
+            <option value="ne-IN">Nepali (नेपाली)</option>
+            <option value="sd-IN">Sindhi (सिन्धी / سنڌي)</option>
+            <option value="kok-IN">Konkani (कोंकणी)</option>
+            <option value="mni-IN">Manipuri / Meitei (মৈতৈলোন্)</option>
+            <option value="brx-IN">Bodo (बर'/बड़ो)</option>
+            <option value="dgo-IN">Dogri (डोगरी / ڈوگری)</option>
+          </select>
+          <div class="btn-group">
+            <button id="start-stt" class="tool-btn">🎤 Start</button>
+            <button id="stop-stt" class="tool-btn danger">🛑 Stop</button>
+          </div>
+        </div>
+        <div id="caption-overlay">🎙 Press "Start" to begin...</div>
+      </div>
 
-    <form id="ttsForm">
-      <input type="text" id="textInput" placeholder="Enter text..." size="40" required>
-      <select id="langSelect">
-        <option value="en">English</option>
-        <option value="hi">Hindi</option>
-        <option value="ta">Tamil</option>
-        <option value="te">Telugu</option>
-        <option value="ml">Malayalam</option>
-      </select>
-      <button type="submit">Speak</button>
-    </form>
+      <div class="tool-section" id="tts-tool">
+        <h3>Text-to-Speech (TTS)</h3>
+        <p>Convert text into spoken audio.</p>
+        <form id="ttsForm">
+          <input type="text" id="textInput" placeholder="Enter text to speak..." required>
+          <select id="langSelect">
+            <option value="en">English</option>
+            <option value="hi">Hindi (हिन्दी)</option>
+            <option value="bn">Bengali (বাংলা)</option>
+            <option value="te">Telugu (తెలుగు)</option>
+            <option value="mr">Marathi (मराठी)</option>
+            <option value="ta">Tamil (தமிழ்)</option>
+            <option value="ur">Urdu (اردو)</option>
+            <option value="gu">Gujarati (ગુજરાતી)</option>
+            <option value="kn">Kannada (ಕನ್ನಡ)</option>
+            <option value="or">Odia (ଓଡ଼ିଆ)</option>
+            <option value="ml">Malayalam (മലയാളം)</option>
+            <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
+            <option value="as">Assamese (অসমীয়া)</option>
+            <option value="sa">Sanskrit (संस्कृतम्)</option>
+            <option value="ks">Kashmiri (कश्मीरी)</option>
+            <option value="ne">Nepali (नेपाली)</option>
+            <option value="sd">Sindhi (सिन्धी)</option>
+          </select>
+          <button type="submit" class="tool-btn primary">Speak Audio</button>
+        </form>
+        <audio id="audioPlayer"></audio>
+      </div>
 
-    <audio id="audioPlayer"></audio>
-
-
-
+    </aside>
   </div>
-
-  <script src="https://8x8.vc/external_api.js"></script>
-  <script src="{% static 'js/speech_overlay.js' %}"></script>
-
-  <script>
-    // ===== Initialize Jitsi Meet =====
-    const domain = "8x8.vc";
-    const options = {
-      roomName: "vpaas-magic-cookie-d25168bf67bb49e1979fb170f4793d3c/SignMeetRoom",
-      jwt: "eyJraWQiOiJ2cGFhcy1tYWdpYy1jb29raWUtZDI1MTY4YmY2N2JiNDllMTk3OWZiMTcwZjQ3OTNkM2MvOWUwOTkwLVNBTVBMRV9BUFAiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJqaXRzaSIsImlzcyI6ImNoYXQiLCJpYXQiOjE3NjE0NjI4OTAsImV4cCI6MTc2MTQ3MDA5MCwibmJmIjoxNzYxNDYyODg1LCJzdWIiOiJ2cGFhcy1tYWdpYy1jb29raWUtZDI1MTY4YmY2N2JiNDllMTk3OWZiMTcwZjQ3OTNkM2MiLCJjb250ZXh0Ijp7ImZlYXR1cmVzIjp7ImxpdmVzdHJlYW1pbmciOnRydWUsImZpbGUtdXBsb2FkIjp0cnVlLCJvdXRib3VuZC1jYWxsIjp0cnVlLCJzaXAtb3V0Ym91bmQtY2FsbCI6ZmFsc2UsInRyYW5zY3JpcHRpb24iOnRydWUsImxpc3QtdmlzaXRvcnMiOmZhbHNlLCJyZWNvcmRpbmciOnRydWUsImZsaXAiOmZhbHNlfSwidXNlciI6eyJoaWRkZW4tZnJvbS1yZWNvcmRlciI6ZmFsc2UsIm1vZGVyYXRvciI6dHJ1ZSwibmFtZSI6IjFqdDIyY3MxMTYiLCJpZCI6Imdvb2dsZS1vYXV0aDJ8MTAxNTM3MzI5NTEwMjk3OTM3ODQ1IiwiYXZhdGFyIjoiIiwiZW1haWwiOiIxanQyMmNzMTE2QGp5b3RoeWl0LmFjLmluIn19LCJyb29tIjoiKiJ9.Ib1A4CnnVwiBXdFo9VD4er2qOwpSj4iyXsPpW_5no4OVHEZ01zivxbyDPmOYO-H4AnnB82rA4tNoHCuZSq4z8TxdekokbeOLkyG81M-A1i5HQ9b2wQUEHgjJV3zY7zU3HiT3NiYM_b3BOjk29Y29956bxWbJyWE8JfH7D7PGnS_npjiUVVGazGLe2V92nAkAYX2_rLEW76YylBgagCX5WRCfw4Ozw7REPqPYmXVFRj41-D8SCkyNHn3x6cVr04bkBDmvTtdnXCZ7voarNwE9eoB4rUkrNFJiBAm_8i8e8vJeRlNnsb_byQzpVpcAWMjmgkt-ZMx9VDFZ9ltE-5ey2g",
-      parentNode: document.querySelector('#meet'),
-      width: "100%",
-      height: "100%",
-      configOverwrite: { prejoinPageEnabled: false }
-    };
-    const api = new JitsiMeetExternalAPI(domain, options);
-
-    document.getElementById('ttsForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const text = document.getElementById('textInput').value;
-      const lang = document.getElementById('langSelect').value;
-
-      const url = `/api/dynamic_tts/?text=${encodeURIComponent(text)}&lang=${lang}`;
-      const audioPlayer = document.getElementById('audioPlayer');
-      audioPlayer.src = url;
-      audioPlayer.play().catch(err => console.warn("Autoplay blocked:", err));
-    });
-
-  </script>
 
   <button id="chat-toggle-icon" class="chat-toggle-icon">
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
       <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
     </svg>
   </button>
-
   {% include 'partials/bot.html' %}
-
+  <script src="https://8x8.vc/external_api.js"></script>
+  <script src="{% static 'js/speech_overlay.js' %}"></script>
   <script src="{% static 'js/bot.js' %}"></script>
+
+  <script>
+    // ===== Initialize Jitsi Meet =====
+    const domain = "8x8.vc";
+    const jitsiRoomName = "vpaas-magic-cookie-d25168bf67bb49e1979fb170f4793d3c/SignMeetRoom"; // Ensure this matches your JWT/setup
+    const jwt = "eyJraWQiOiJ2cGFhcy1tYWdpYy1jb29raWUtZDI1MTY4YmY2N2JiNDllMTk3OWZiMTcwZjQ3OTNkM2MvOWUwOTkwLVNBTVBMRV9BUFAiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJqaXRzaSIsImlzcyI6ImNoYXQiLCJpYXQiOjE3NjE1NTE2MjYsImV4cCI6MTc2MTU2MjgyNiwibmJmIjoxNzYxNTUxNjIxLCJzdWIiOiJ2cGFhcy1tYWdpYy1jb29raWUtZDI1MTY4YmY2N2JiNDllMTk3OWZiMTcwZjQ3OTNkM2MiLCJjb250ZXh0Ijp7ImZlYXR1cmVzIjp7ImxpdmVzdHJlYW1pbmciOnRydWUsImZpbGUtdXBsb2FkIjp0cnVlLCJvdXRib3VuZC1jYWxsIjp0cnVlLCJzaXAtb3V0Ym91bmQtY2FsbCI6ZmFsc2UsInRyYW5zY3JpcHRpb24iOnRydWUsImxpc3QtdmlzaXRvcnMiOmZhbHNlLCJyZWNvcmRpbmciOnRydWUsImZsaXAiOmZhbHNlfSwidXNlciI6eyJoaWRkZW4tZnJvbS1yZWNvcmRlciI6ZmFsc2UsIm1vZGVyYXRvciI6dHJ1ZSwibmFtZSI6IjFqdDIyY3MxMTYiLCJpZCI6Imdvb2dsZS1vYXV0aDJ8MTAxNTM3MzI5NTEwMjk3OTM3ODQ1IiwiYXZhdGFyIjoiIiwiZW1haWwiOiIxanQyMmNzMTE2QGp5b3RoeWl0LmFjLmluIn19LCJyb29tIjoiKiJ9.C_wE2w4XgO5R7u1fR3H0g_kL5pC6xZ7d8J9yG0aB1cE"; // Ensure JWT is valid or generated dynamically
+    const options = {
+      roomName: jitsiRoomName,
+      jwt: jwt,
+      parentNode: document.querySelector('#meet'),
+      width: "100%",
+      height: "100%", // Adjust if needed to fit layout
+      configOverwrite: { prejoinPageEnabled: false },
+      interfaceConfigOverwrite: {
+        TOOLBAR_BUTTONS: [ // Customize Jitsi toolbar if desired
+          'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+          'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
+          'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
+          'videoquality', 'filmstrip', 'invite', 'feedback', 'stats', 'shortcuts',
+          'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone',
+          // 'security' // Consider security implications if enabling this
+        ],
+        DISABLE_DOMINANT_SPEAKER_INDICATOR: true
+      }
+    };
+    const api = new JitsiMeetExternalAPI(domain, options);
+
+    // TTS Form Submission Handler
+    document.getElementById('ttsForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = document.getElementById('textInput').value;
+      const lang = document.getElementById('langSelect').value;
+      const url = `/api/dynamic_tts/?text=${encodeURIComponent(text)}&lang=${lang}`;
+      const audioPlayer = document.getElementById('audioPlayer');
+      audioPlayer.src = url;
+      audioPlayer.play().catch(err => console.warn("Autoplay blocked:", err));
+    });
+
+
+
+
+    const signToggleButton = document.getElementById('toggle-sign-detection');
+    const signVideoFeed = document.getElementById('sign-video-feed');
+    const signCanvas = document.getElementById('sign-canvas');
+    const signCtx = signCanvas.getContext('2d');
+
+    // Get elements from the overlay
+    const signOverlay = document.getElementById('sign-overlay');
+    const signText = document.getElementById('predicted-sign');
+    const confText = document.getElementById('sign-confidence');
+
+    let signStream = null;
+    let signInterval = null;
+
+    signToggleButton.addEventListener('click', () => {
+      if (signInterval) {
+        // --- STOP DETECTION ---
+        console.log("Stopping sign detection...");
+        clearInterval(signInterval);
+        signInterval = null;
+
+        if (signStream) {
+          signStream.getTracks().forEach(track => track.stop());
+          signStream = null;
+        }
+
+        signVideoFeed.srcObject = null;
+        signVideoFeed.style.display = 'none';
+        signOverlay.style.display = 'none';
+
+        signText.innerText = 'None';
+        confText.innerText = '';
+
+        signToggleButton.innerText = 'Start Detection';
+        signToggleButton.classList.remove('danger');
+
+      } else {
+        // --- START DETECTION ---
+        console.log("Starting sign detection...");
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then(stream => {
+            signStream = stream;
+            signVideoFeed.srcObject = stream;
+            signVideoFeed.play(); 
+            signVideoFeed.style.display = 'block';
+            signOverlay.style.display = 'block';
+
+            // Start capturing frames
+            signInterval = setInterval(() => {
+              // Draw video frame to hidden canvas
+              signCtx.drawImage(signVideoFeed, 0, 0, signCanvas.width, signCanvas.height);
+              const imgData = signCanvas.toDataURL('image/jpeg');
+
+              // Send to backend (requires jQuery)
+              $.post('/conferencing/detect_sign/', { image: imgData }, function (response) {
+                if (response.label) {
+                  signText.innerText = response.label;
+                  confText.innerText = `(${response.confidence}% confidence)`;
+                } else {
+                  signText.innerText = 'None';
+                  confText.innerText = '';
+                }
+              }).fail(function () {
+                console.error("Failed to post sign detection image.");
+                signText.innerText = 'Error';
+                confText.innerText = '(Connection failed)';
+              });
+            }, 3000); // every 3 seconds
+
+            signToggleButton.innerText = 'Stop Detection';
+            signToggleButton.classList.add('danger');
+
+          })
+          .catch(err => {
+            console.error("Camera error:", err);
+            alert("Could not access camera for sign detection. Please check permissions.");
+          });
+      }
+    });
+  </script>
+
 
 </body>
 

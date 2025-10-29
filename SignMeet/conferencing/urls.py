@@ -10,4 +10,5 @@ urlpatterns = [
     # --- Add this new path for the chatbot ---
     path('chat/send_message/', views.sense_chat_message, name='sense_chat_message'),
     path('api/dynamic_tts/', views.generate_dynamic_tts, name='api_dynamic_tts'),
+    path('detect_sign/', views.detect_sign, name='detect_sign'),
 ]

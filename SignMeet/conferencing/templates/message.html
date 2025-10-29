@@ -1,0 +1,18 @@
+<div id="sign-overlay" style="position:absolute; bottom:40px; right:40px;
+            background:rgba(255,255,255,0.9); padding:10px 20px;
+            border-radius:12px; font-family:sans-serif; font-size:18px;
+            box-shadow:0 4px 10px rgba(0,0,0,0.2); z-index:999;">
+    ✋ Waiting for sign updates...
+</div>
+
+<script>
+    const room = "{{ room_name|default:'SignMeetRoom' }}";  // or hardcode a room name
+    const socket = new WebSocket(`ws://${window.location.host}/ws/sign/${room}/`);
+
+    socket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        document.getElementById("sign-overlay").textContent =
+            `🧏 ${data.user}: ${data.detected_text}`;
+    };
+</script>
+
