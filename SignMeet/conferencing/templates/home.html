@@ -12,6 +12,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
 </head>
 
 <body>
@@ -38,12 +41,14 @@
         <button id="toggle-sign-detection" class="tool-btn">Start Detection</button>
         <video id="sign-video-feed" width="300" height="225" muted playsinline autoplay
           style="display: none; border-radius: 8px; margin-top: 10px;"></video>
+        
         <div id="sign-display-area"
           style="display: none; margin-top: 10px; max-height: 150px; overflow-y: auto; background: #f0f0f0; border-radius: 8px; padding: 10px;">
           <strong>Detected Signs:</strong>
           <ul id="sign-list" style="list-style: none; padding: 0; margin: 5px 0 0 0;"></ul>
         </div>
-        <canvas id="sign-canvas" width="200" height="150" style="display: none;"></canvas>
+
+        <canvas id="sign-canvas" width="224" height="224" style="display: none;"></canvas>
       </div>
 
 
@@ -54,26 +59,6 @@
           <select id="stt-language">
             <option value="en-IN">English</option>
             <option value="hi-IN">Hindi (हिन्दी)</option>
-            <option value="bn-IN">Bengali (বাংলা)</option>
-            <option value="te-IN">Telugu (తెలుగు)</option>
-            <option value="mr-IN">Marathi (मराठी)</option>
-            <option value="ta-IN">Tamil (தமிழ்)</option>
-            <option value="ur-IN">Urdu (اردو)</option>
-            <option value="gu-IN">Gujarati (ગુજરાતી)</option>
-            <option value="kn-IN">Kannada (ಕನ್ನಡ)</option>
-            <option value="or-IN">Odia (ଓଡ଼ିଆ)</option>
-            <option value="ml-IN">Malayalam (മലയാളം)</option>
-            <option value="pa-IN">Punjabi (ਪੰਜਾਬੀ)</option>
-            <option value="as-IN">Assamese (অসমীয়া)</option>
-            <option value="mai-IN">Maithili (मैथिली)</option>
-            <option value="sa-IN">Sanskrit (संस्कृतम्)</option>
-            <option value="sat-IN">Santali (ᱥᱟᱱᱛᱟᱲᱤ)</option>
-            <option value="ks-IN">Kashmiri (कश्मीरी / كشميري)</option>
-            <option value="ne-IN">Nepali (नेपाली)</option>
-            <option value="sd-IN">Sindhi (सिन्धी / سنڌي)</option>
-            <option value="kok-IN">Konkani (कोंकणी)</option>
-            <option value="mni-IN">Manipuri / Meitei (মৈতৈলোন্)</option>
-            <option value="brx-IN">Bodo (बर'/बड़ो)</option>
             <option value="dgo-IN">Dogri (डोगरी / ڈوگری)</option>
           </select>
           <div class="btn-group">
@@ -92,20 +77,6 @@
           <select id="langSelect">
             <option value="en">English</option>
             <option value="hi">Hindi (हिन्दी)</option>
-            <option value="bn">Bengali (বাংলা)</option>
-            <option value="te">Telugu (తెలుగు)</option>
-            <option value="mr">Marathi (मराठी)</option>
-            <option value="ta">Tamil (தமிழ்)</option>
-            <option value="ur">Urdu (اردو)</option>
-            <option value="gu">Gujarati (ગુજરાતી)</option>
-            <option value="kn">Kannada (ಕನ್ನಡ)</option>
-            <option value="or">Odia (ଓଡ଼ିଆ)</option>
-            <option value="ml">Malayalam (മലയാളം)</option>
-            <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
-            <option value="as">Assamese (অসমীয়া)</option>
-            <option value="sa">Sanskrit (संस्कृतम्)</option>
-            <option value="ks">Kashmiri (कश्मीरी)</option>
-            <option value="ne">Nepali (नेपाली)</option>
             <option value="sd">Sindhi (सिन्धी)</option>
           </select>
           <button type="submit" class="tool-btn primary">Speak Audio</button>
@@ -164,17 +135,16 @@
     });
 
 
-
+    // --- ⭐️ 3. SIGN LANGUAGE SCRIPT (HEAVILY REVISED) ⭐️ ---
 
     const signToggleButton = document.getElementById('toggle-sign-detection');
     const signVideoFeed = document.getElementById('sign-video-feed');
     const signCanvas = document.getElementById('sign-canvas');
     const signCtx = signCanvas.getContext('2d');
 
-    // Get elements from the overlay
-    const signOverlay = document.getElementById('sign-overlay');
-    const signText = document.getElementById('predicted-sign');
-    const confText = document.getElementById('sign-confidence');
+    // Get the CORRECT elements from the HTML
+    const signDisplayArea = document.getElementById('sign-display-area');
+    const signList = document.getElementById('sign-list');
 
     let signStream = null;
     let signInterval = null;
@@ -193,10 +163,8 @@
 
         signVideoFeed.srcObject = null;
         signVideoFeed.style.display = 'none';
-        signOverlay.style.display = 'none';
-
-        signText.innerText = 'None';
-        confText.innerText = '';
+        signDisplayArea.style.display = 'none'; // Hide display area
+        signList.innerHTML = ''; // Clear the list
 
         signToggleButton.innerText = 'Start Detection';
         signToggleButton.classList.remove('danger');
@@ -208,31 +176,57 @@
           .then(stream => {
             signStream = stream;
             signVideoFeed.srcObject = stream;
-            signVideoFeed.play(); 
+            signVideoFeed.play();
             signVideoFeed.style.display = 'block';
-            signOverlay.style.display = 'block';
+            signDisplayArea.style.display = 'block'; // Show display area
 
             // Start capturing frames
             signInterval = setInterval(() => {
-              // Draw video frame to hidden canvas
-              signCtx.drawImage(signVideoFeed, 0, 0, signCanvas.width, signCanvas.height);
+              // --- Crop video to square ---
+              // Video is 300x225. We want the center 225x225 square.
+              const videoWidth = signVideoFeed.videoWidth; // 300
+              const videoHeight = signVideoFeed.videoHeight; // 225
+              const size = Math.min(videoWidth, videoHeight); // 225
+              const x = (videoWidth - size) / 2; // (300 - 225) / 2 = 37.5
+              const y = (videoHeight - size) / 2; // (225 - 225) / 2 = 0
+              
+              // Draw the square crop onto the (now square) canvas
+              signCtx.drawImage(
+                signVideoFeed, // source
+                x, y,          // source x, y
+                size, size,    // source width, height
+                0, 0,          // dest x, y
+                signCanvas.width, signCanvas.height // dest width, height
+              );
+              
               const imgData = signCanvas.toDataURL('image/jpeg');
 
-              // Send to backend (requires jQuery)
-              $.post('/conferencing/detect_sign/', { image: imgData }, function (response) {
+              // Send to backend (using jQuery $.post)
+              $.post('/detect_sign/', { image: imgData }, function (response) {
                 if (response.label) {
-                  signText.innerText = response.label;
-                  confText.innerText = `(${response.confidence}% confidence)`;
-                } else {
-                  signText.innerText = 'None';
-                  confText.innerText = '';
+                  const lastSignItem = signList.querySelector('li:first-child');
+                  const newSignText = `${response.label} (${response.confidence}%)`;
+                  
+                  // Only add if it's a new sign to prevent spam
+                  if (!lastSignItem || lastSignItem.innerText !== newSignText) {
+                      const newItem = document.createElement('li');
+                      newItem.innerText = newSignText;
+                      signList.prepend(newItem); // Add new sign to the top
+                  }
                 }
-              }).fail(function () {
-                console.error("Failed to post sign detection image.");
-                signText.innerText = 'Error';
-                confText.innerText = '(Connection failed)';
+              }).fail(function (xhr) {
+                console.error("Failed to post sign detection image. Status:", xhr.status, xhr.responseText);
+                const lastSignItem = signList.querySelector('li:first-child');
+                const errorText = 'Error (Connection failed)';
+
+                if (!lastSignItem || lastSignItem.innerText !== errorText) {
+                    const errorItem = document.createElement('li');
+                    errorItem.style.color = 'red';
+                    errorItem.innerText = errorText;
+                    signList.prepend(errorItem);
+                }
               });
-            }, 3000); // every 3 seconds
+            }, 1500); // Send every 1.5 seconds
 
             signToggleButton.innerText = 'Stop Detection';
             signToggleButton.classList.add('danger');
@@ -245,8 +239,5 @@
       }
     });
   </script>
-
-
 </body>
-
 </html>

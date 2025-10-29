@@ -8,12 +8,13 @@ import google.generativeai as genai
 from django.http import HttpRequest, HttpResponse
 from gtts import gTTS
 from googletrans import Translator
-import io,tempfile
+import io, tempfile
 import base64
 import numpy as np
 from PIL import Image
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import img_to_array
+import mediapipe as mp
 
 # --- Load environment variables ---
 load_dotenv()
@@ -28,36 +29,8 @@ else:
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# --- Bot instructions ---
-# SENSE_BOT_INSTRUCTIONS = """### ROLE ###
-# You are a helpful assistant for the "SENSE" meeting conference project. Your name is "Sense Bot".
-
-# ### TASK ###
-# Your job is to answer user questions about SENSE.
-# - Be friendly, clear, and concise.
-# - You MUST answer questions using ONLY the information provided in the "KNOWLEDGE" section below.
-# - If the answer is not in the "KNOWLEDGE" section, say: "I'm sorry, I don't have that information. You can contact our support team at support@wisdom.com."
-# - Do not make up answers or use your general knowledge.
-
-# ### KNOWLEDGE ###
-# ---
-# - Product Name: SENSE: A New Light of Communication
-# - How to access the whiteboard: Create a meeting Id through Your name > press on ... (menu button) there click on whiteboard
-# - How to mute myself: Click on the mic option provided in the tab section.
-# ---
-# """
+# --- Bot instructions (CLEANED UP) ---
 SENSE_BOT_INSTRUCTIONS = """
-### ROLE ###
-You are a helpful assistant for the "SENSE" meeting conference platform. Your name is "Sense Bot".
-
- ### TASK ###
-Your job is to answer user questions about SENSE.
-- Be friendly, clear, and concise.
-- You MUST answer questions using ONLY the information provided in the "KNOWLEDGE" section below.
-- If the answer is not in the "KNOWLEDGE" section, say: "I'm sorry, I don't have that information. You can contact our support team at support@wisdom.com."
-- Do not make up answers or use your general knowledge.
-
-### KNOWLEDGE ###
 ### ROLE ###
 You are a helpful assistant for the "SENSE" meeting conference platform. Your name is "Sense Bot".
 
@@ -142,7 +115,7 @@ Your job is to answer user questions about SENSE.
 # --- Initialize Gemini Model ---
 try:
     sense_model = genai.GenerativeModel(
-        model_name="gemini-2.5-flash",
+        model_name="gemini-1.5-flash",  # Using 1.5-flash
         system_instruction=SENSE_BOT_INSTRUCTIONS
     )
     chat_session = sense_model.start_chat(history=[])
@@ -262,40 +235,132 @@ def generate_dynamic_tts(request):
 
 # Load model once globally
 MODEL_PATH = "ml_models/best_sign_model.h5"
-model = load_model(MODEL_PATH)
+try:
+    classifier_model = load_model(MODEL_PATH)
+    print(f"✅ Sign classifier model loaded successfully from {MODEL_PATH}")
+except Exception as e:
+    print(f"❌ ERROR: Could not load sign classifier model from {MODEL_PATH}. Error: {e}")
+    classifier_model = None
+
+# Load MediaPipe Hand Detector Model
+try:
+    mp_hands = mp.solutions.hands
+    # Initialize with static_image_mode=True for processing individual images
+    # max_num_hands=1 because we only care about one sign at a time
+    hand_detector = mp_hands.Hands(
+        static_image_mode=True, 
+        max_num_hands=1, 
+        min_detection_confidence=0.5
+    )
+    print("✅ MediaPipe hand detector loaded successfully.")
+except Exception as e:
+    print(f"❌ ERROR: Could not load MediaPipe hands model. Error: {e}")
+    hand_detector = None
+
 CLASS_NAMES = [
     '1', '2', '3', '4', '5', '6', '7', '8', '9',
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
     'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
     'U', 'V', 'W', 'X', 'Y', 'Z'
-]  # update based on your dataset
+]
 
+# --- ⭐️ 3. HELPER FUNCTION TO PAD IMAGE TO A SQUARE ⭐️ ---
+def squarify_image(pil_img):
+    """Pads a PIL image to be square."""
+    # Get the larger dimension
+    width, height = pil_img.size
+    new_size = max(width, height)
+    
+    # Create a new square background image (black)
+    new_im = Image.new("RGB", (new_size, new_size), (0, 0, 0))
+    
+    # Paste the original image into the center of the square background
+    new_im.paste(pil_img, ((new_size - width) // 2, (new_size - height) // 2))
+    return new_im
+
+
+# --- ⭐️ 4. UPDATED DETECT_SIGN VIEW ⭐️ ---
+@csrf_exempt
 def detect_sign(request):
     if request.method == 'POST':
+        # Check if models are loaded
+        if not classifier_model or not hand_detector:
+             return JsonResponse({'error': 'Models not loaded on server'}, status=500)
+             
         image_data = request.POST.get('image')
         if not image_data:
             return JsonResponse({'error': 'No image received'}, status=400)
 
-        # Decode image
-        _, imgstr = image_data.split(';base64,')
-        img_bytes = base64.b64decode(imgstr)
-        image = Image.open(io.BytesIO(img_bytes)).convert('RGB')
+        try:
+            # --- Decode image from Base64 ---
+            _, imgstr = image_data.split(';base64,')
+            img_bytes = base64.b64decode(imgstr)
+            # original_pil_image is the 224x224 image from the canvas
+            original_pil_image = Image.open(io.BytesIO(img_bytes)).convert('RGB')
+            
+            # Convert PIL image to NumPy array for MediaPipe
+            # MediaPipe expects RGB images, which .convert('RGB') provides
+            frame_rgb = np.array(original_pil_image)
 
-        # Preprocess
-        image = image.resize((64, 64))
-        img_array = img_to_array(image)
-        img_array = np.expand_dims(img_array / 255.0, axis=0)
+            # --- STEP 1: DETECT HAND ---
+            results = hand_detector.process(frame_rgb)
 
-        # Predict
-        preds = model.predict(img_array)
-        class_index = np.argmax(preds[0])
-        confidence = float(np.max(preds[0]))
-        predicted_label = CLASS_NAMES[class_index]
+            # If no hands are found, return a specific response
+            if not results.multi_hand_landmarks:
+                return JsonResponse({'label': 'No Hand', 'confidence': 0})
 
+            # --- Hand IS found, calculate bounding box ---
+            hand_landmarks = results.multi_hand_landmarks[0]
+            
+            # Get image dimensions
+            img_height, img_width, _ = frame_rgb.shape
 
-        return JsonResponse({
-            'label': predicted_label,
-            'confidence': round(confidence * 100, 2)
-        })
+            # Find min/max x and y coordinates from landmarks
+            x_coords = [landmark.x * img_width for landmark in hand_landmarks.landmark]
+            y_coords = [landmark.y * img_height for landmark in hand_landmarks.landmark]
+            
+            x_min = int(min(x_coords))
+            x_max = int(max(x_coords))
+            y_min = int(min(y_coords))
+            y_max = int(max(y_coords))
+
+            # Add padding to the bounding box (e.g., 20 pixels)
+            padding = 20
+            x_min = max(0, x_min - padding)
+            y_min = max(0, y_min - padding)
+            x_max = min(img_width, x_max + padding)
+            y_max = min(img_height, y_max + padding)
+
+            # --- Crop the *original PIL image* to the bounding box ---
+            cropped_hand_img = original_pil_image.crop((x_min, y_min, x_max, y_max))
+            
+            # --- "Squarify" the cropped hand image ---
+            square_hand_img = squarify_image(cropped_hand_img)
+
+            # --- STEP 2: CLASSIFY SIGN ---
+            
+            # Resize this new *square hand image* to what the classifier expects
+            image_to_predict = square_hand_img.resize((224, 224))
+            
+            # Preprocess for Keras model
+            img_array = img_to_array(image_to_predict)
+            img_array = np.expand_dims(img_array / 255.0, axis=0) # (1, 224, 224, 3)
+
+            # Predict
+            preds = classifier_model.predict(img_array)
+            class_index = np.argmax(preds[0])
+            confidence = float(np.max(preds[0]))
+            predicted_label = CLASS_NAMES[class_index]
+
+            return JsonResponse({
+                'label': predicted_label,
+                'confidence': round(confidence * 100, 2)
+            })
+        
+        except Exception as e:
+            import traceback
+            print(f"Error during prediction: {e}")
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Invalid request'}, status=400)
